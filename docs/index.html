@@ -29,79 +29,82 @@
     --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300;
   }
   *{box-sizing:border-box}
+  /* 화면 폭에 따라 기준 글자크기가 16px -> 21px 로 부드럽게 커진다.
+     아래 크기는 전부 rem 이라 이 한 줄에 함께 따라온다. */
+  html{font-size:clamp(16px, 13px + 0.55vw, 21px)}
   body{
-    margin:0; padding:24px 16px 56px; background:var(--surface-0); color:var(--text-primary);
-    font:14px/1.55 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",
+    margin:0; padding:1.5rem 1rem 3.5rem; background:var(--surface-0); color:var(--text-primary);
+    font:1rem/1.55 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",
          "Noto Sans KR",system-ui,sans-serif;
   }
-  .wrap{max-width:1000px;margin:0 auto}
-  header{margin-bottom:20px}
-  h1{margin:0 0 6px;font-size:20px;letter-spacing:-.01em}
-  .sub{color:var(--text-secondary);font-size:13px;margin:0}
+  .wrap{max-width:1100px;margin:0 auto}
+  header{margin-bottom:1.25rem}
+  h1{margin:0 0 .35rem;font-size:1.6rem;letter-spacing:-.01em;line-height:1.25}
+  .sub{color:var(--text-secondary);font-size:.92rem;margin:0}
   .sub a{color:inherit}
-  .card{background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:16px}
+  .card{background:var(--surface-1);border:1px solid var(--border);border-radius:.85rem;padding:1rem}
 
   /* 현재값 타일 */
-  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:16px}
-  .tile{background:var(--surface-1);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
-  .tile .nm{display:flex;align-items:center;gap:6px;color:var(--text-secondary);font-size:12px;margin-bottom:3px}
-  .dot{width:9px;height:9px;border-radius:50%;flex:none}
-  .tile .val{font-size:20px;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-  .tile .meta{color:var(--text-muted);font-size:11px;font-variant-numeric:tabular-nums}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));gap:.55rem;margin-bottom:1rem}
+  .tile{background:var(--surface-1);border:1px solid var(--border);border-radius:.7rem;padding:.7rem .8rem}
+  .tile .nm{display:flex;align-items:center;gap:.4rem;color:var(--text-secondary);font-size:.88rem;margin-bottom:.2rem}
+  .dot{width:.62rem;height:.62rem;border-radius:50%;flex:none}
+  .tile .val{font-size:1.65rem;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.2}
+  .tile .meta{color:var(--text-muted);font-size:.8rem;font-variant-numeric:tabular-nums}
 
   /* 컨트롤 */
-  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
-  .seg{display:inline-flex;background:var(--surface-1);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .controls{display:flex;flex-wrap:wrap;gap:.55rem;align-items:center;margin-bottom:.8rem}
+  .seg{display:inline-flex;background:var(--surface-1);border:1px solid var(--border);border-radius:.55rem;overflow:hidden}
   .seg button{
     appearance:none;border:0;background:transparent;color:var(--text-secondary);
-    padding:7px 14px;font:inherit;font-size:13px;cursor:pointer
+    padding:.5rem 1rem;font:inherit;font-size:.95rem;cursor:pointer
   }
   .seg button[aria-pressed="true"]{background:var(--text-primary);color:var(--surface-1);font-weight:600}
   .spacer{flex:1}
-  .hint{color:var(--text-muted);font-size:12px}
+  .hint{color:var(--text-muted);font-size:.86rem}
 
   /* 차트 */
   .chartbox{position:relative}
   svg{display:block;width:100%;height:auto;overflow:visible;touch-action:pan-y}
   .gridline{stroke:var(--grid);stroke-width:1}
-  .axis-text{fill:var(--text-muted);font-size:11px;font-variant-numeric:tabular-nums}
-  .ref{stroke:var(--rule);stroke-width:1;stroke-dasharray:4 4}
-  .ref-text{fill:var(--text-muted);font-size:10.5px}
-  .series{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
-  .endlabel{fill:var(--text-primary);font-size:12px;font-weight:650;font-variant-numeric:tabular-nums}
-  .crosshair{stroke:var(--rule);stroke-width:1}
+  .axis-text{fill:var(--text-muted);font-size:15px;font-variant-numeric:tabular-nums}
+  .ref{stroke:var(--rule);stroke-width:1.2;stroke-dasharray:5 5}
+  .ref-text{fill:var(--text-muted);font-size:14px}
+  .series{fill:none;stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
+  .endlabel{fill:var(--text-primary);font-size:17px;font-weight:650;font-variant-numeric:tabular-nums}
+  .crosshair{stroke:var(--rule);stroke-width:1.2}
   .halo{stroke:var(--surface-1);stroke-width:2}
 
   /* 범례 */
-  .legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+  .legend{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:1rem}
   .legend button{
-    display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--border);
-    border-radius:999px;padding:5px 11px;font:inherit;font-size:12.5px;color:var(--text-secondary);cursor:pointer
+    display:inline-flex;align-items:center;gap:.4rem;background:transparent;border:1px solid var(--border);
+    border-radius:999px;padding:.4rem .8rem;font:inherit;font-size:.92rem;color:var(--text-secondary);cursor:pointer
   }
   .legend button[aria-pressed="false"]{opacity:.4}
   .legend button:hover{border-color:var(--rule)}
 
   /* 툴팁 */
   .tip{
-    position:absolute;pointer-events:none;z-index:5;min-width:172px;
-    background:var(--surface-1);border:1px solid var(--border);border-radius:9px;
-    padding:9px 11px;box-shadow:0 6px 22px rgba(0,0,0,.16);opacity:0;transition:opacity .1s
+    position:absolute;pointer-events:none;z-index:5;min-width:12rem;
+    background:var(--surface-1);border:1px solid var(--border);border-radius:.6rem;
+    padding:.6rem .7rem;box-shadow:0 6px 22px rgba(0,0,0,.16);opacity:0;transition:opacity .1s
   }
   .tip.on{opacity:1}
-  .tip .t{color:var(--text-secondary);font-size:11.5px;margin-bottom:6px}
-  .tip .r{display:flex;align-items:center;gap:7px;font-size:12.5px;padding:1.5px 0}
+  .tip .t{color:var(--text-secondary);font-size:.84rem;margin-bottom:.4rem}
+  .tip .r{display:flex;align-items:center;gap:.45rem;font-size:.92rem;padding:.1rem 0}
   .tip .r .n{color:var(--text-secondary);flex:1;white-space:nowrap}
   .tip .r .v{font-variant-numeric:tabular-nums;font-weight:600}
 
   /* 표 */
-  details{margin-top:18px}
-  summary{cursor:pointer;color:var(--text-secondary);font-size:13px;padding:6px 0}
-  .tablewrap{overflow-x:auto;margin-top:8px}
-  table{border-collapse:collapse;font-size:12.5px;white-space:nowrap;min-width:100%}
-  th,td{padding:6px 10px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+  details{margin-top:1.2rem}
+  summary{cursor:pointer;color:var(--text-secondary);font-size:.95rem;padding:.4rem 0}
+  .tablewrap{overflow-x:auto;margin-top:.5rem}
+  table{border-collapse:collapse;font-size:.9rem;white-space:nowrap;min-width:100%}
+  th,td{padding:.45rem .7rem;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
   th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface-1)}
   thead th{color:var(--text-secondary);font-weight:600;border-bottom:1px solid var(--rule)}
-  footer{margin-top:24px;color:var(--text-muted);font-size:12px;line-height:1.7}
+  footer{margin-top:1.5rem;color:var(--text-muted);font-size:.86rem;line-height:1.7}
 </style>
 </head>
 <body>
@@ -201,8 +204,18 @@
   }
 
   /* ---------- 차트 ---------- */
-  var W = 900, H = 420, ML = 46, MR = 82, MT = 14, MB = 34;
-  var PW = W - ML - MR, PH = H - MT - MB;
+  // SVG 안 글자는 뷰박스 단위라 화면과 함께 줄어든다.
+  // 좁은 화면에서는 뷰박스를 함께 좁혀서 글자가 상대적으로 크게 보이도록 한다.
+  var W, H, ML, MR, MT, MB, PW, PH, dense;
+  function geom(){
+    var cw = document.getElementById("chartbox").clientWidth || 900;
+    W = cw >= 900 ? 900 : cw >= 640 ? 760 : cw >= 460 ? 620 : 520;
+    dense = W >= 700;                       // 눈금을 촘촘히 찍어도 되는 폭인가
+    H = Math.round(W * (W <= 560 ? 0.74 : 0.50));
+    ML = 54; MR = 100; MT = 18; MB = 44;
+    PW = W - ML - MR;
+    PH = H - MT - MB;
+  }
   var xs = ROWS.map(function(r){ return tms(r[0]); });
   var x0 = xs[0], x1 = xs[xs.length-1];
   var X = function(t){ return ML + (x1 === x0 ? PW : (t - x0) / (x1 - x0) * PW); };
@@ -214,6 +227,8 @@
   }
 
   function draw(){
+    geom();
+    document.getElementById("chart").setAttribute("viewBox", "0 0 " + W + " " + H);
     var vis = D.map(function(_,i){ return i; }).filter(function(i){ return on[i]; });
     var peak = 0;
     ROWS.forEach(function(_,r){ vis.forEach(function(i){ peak = Math.max(peak, val(r,i)); }); });
@@ -227,7 +242,7 @@
     for (var s = 0; s <= steps; s++){
       var v = ymax * s / steps, y = Y(v);
       out.push('<line class="gridline" x1="'+ML+'" y1="'+y.toFixed(1)+'" x2="'+(ML+PW)+'" y2="'+y.toFixed(1)+'"/>');
-      out.push('<text class="axis-text" x="'+(ML-8)+'" y="'+(y+3.5).toFixed(1)+'" text-anchor="end">'
+      out.push('<text class="axis-text" x="'+(ML-8)+'" y="'+(y+5).toFixed(1)+'" text-anchor="end">'
         + (mode === "ratio" ? v.toFixed(1) : Math.round(v)) + '</text>');
     }
 
@@ -242,17 +257,17 @@
     var seen = {};
     ROWS.forEach(function(r){
       var d = new Date(r[0] + ":00"), h = d.getHours();
-      if (h !== 0 && h !== 12) return;
+      if (h !== 0 && !(dense && h === 12)) return;
       var k = r[0].slice(0,10) + h;
       if (seen[k]) return;
       seen[k] = 1;
       var x = X(tms(r[0]));
       out.push('<line class="gridline" x1="'+x.toFixed(1)+'" y1="'+MT+'" x2="'+x.toFixed(1)+'" y2="'+(MT+PH)+'"/>');
-      out.push('<text class="axis-text" x="'+x.toFixed(1)+'" y="'+(MT+PH+16)+'" text-anchor="middle">'
+      out.push('<text class="axis-text" x="'+x.toFixed(1)+'" y="'+(MT+PH+20)+'" text-anchor="middle">'
         + (h === 0 ? (d.getMonth()+1)+"/"+d.getDate() : "12시") + '</text>');
     });
     // 마지막 시점 눈금
-    out.push('<text class="axis-text" x="'+(ML+PW)+'" y="'+(MT+PH+16)+'" text-anchor="end">'
+    out.push('<text class="axis-text" x="'+(ML+PW)+'" y="'+(MT+PH+20)+'" text-anchor="end">'
       + label(ROWS[ROWS.length-1][0]) + '</text>');
 
     // 선
@@ -266,7 +281,7 @@
     var labs = vis.map(function(i){
       return { i:i, y:Y(val(lastIdx,i)), v:val(lastIdx,i) };
     }).sort(function(a,b){ return a.y - b.y; });
-    var MIN = 15;
+    var MIN = 21;
     for (var k = 1; k < labs.length; k++){
       if (labs[k].y - labs[k-1].y < MIN) labs[k].y = labs[k-1].y + MIN;
     }
@@ -276,13 +291,13 @@
     var lx = ML + PW;
     labs.forEach(function(l){
       var cy = Y(l.v);
-      out.push('<circle class="halo" cx="'+lx+'" cy="'+cy.toFixed(1)+'" r="4" fill="var('+SER[l.i]+')"/>');
+      out.push('<circle class="halo" cx="'+lx+'" cy="'+cy.toFixed(1)+'" r="5" fill="var('+SER[l.i]+')"/>');
       // 라벨이 밀렸으면 끌어주는 선
       if (Math.abs(l.y - cy) > 1.5){
-        out.push('<line x1="'+(lx+5)+'" y1="'+cy.toFixed(1)+'" x2="'+(lx+11)+'" y2="'+l.y.toFixed(1)
+        out.push('<line x1="'+(lx+6)+'" y1="'+cy.toFixed(1)+'" x2="'+(lx+13)+'" y2="'+l.y.toFixed(1)
           + '" stroke="var('+SER[l.i]+')" stroke-width="1" opacity=".5"/>');
       }
-      out.push('<text class="endlabel" x="'+(lx+14)+'" y="'+(l.y+4).toFixed(1)+'">'+fmt(l.v)+'</text>');
+      out.push('<text class="endlabel" x="'+(lx+17)+'" y="'+(l.y+6).toFixed(1)+'">'+fmt(l.v)+'</text>');
     });
 
     // 호버 레이어
@@ -313,7 +328,7 @@
       ch.setAttribute("x1", px); ch.setAttribute("x2", px);
       hd.innerHTML = vis.map(function(i){
         return '<circle class="halo" cx="'+px.toFixed(1)+'" cy="'+Y(val(best,i)).toFixed(1)
-          + '" r="4.5" fill="var('+SER[i]+')"/>';
+          + '" r="5.5" fill="var('+SER[i]+')"/>';
       }).join("");
 
       tip.className = "tip on";
