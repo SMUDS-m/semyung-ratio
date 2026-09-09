@@ -171,9 +171,10 @@ def main():
     print(build_message(ts, result))
 
     if "--log" in sys.argv:
+        # 진단은 stderr 로 - stdout 은 카톡에 그대로 보낼 메시지만 남긴다.
         added = log_history(ts, result)
-        print("\n[log] %s · CSV %s · docs/data.js %d개 시점"
-              % (ts, "추가함" if added else "이미 있어 건너뜀", build_site()))
+        sys.stderr.write("[log] %s · CSV %s · docs/data.js %d개 시점\n"
+                         % (ts, "추가함" if added else "이미 있어 건너뜀", build_site()))
 
     if "--detail" in sys.argv:
         print("\n=== 전형별 상세 ===")
