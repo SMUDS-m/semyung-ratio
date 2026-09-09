@@ -29,7 +29,9 @@ TARGETS = [
 BASE = os.path.dirname(os.path.abspath(__file__))
 CSV_PATH = os.path.join(BASE, "data", "ratio_history.csv")
 SITE_DATA = os.path.join(BASE, "docs", "data.js")
-CSV_HEADER = ["collected_at", "department", "capacity", "applicants", "applicants_extra"]
+LASTYEAR = os.path.join(BASE, "docs", "lastyear.js")
+CSV_HEADER = ["collected_at", "department", "capacity", "applicants", "applicants_extra",
+              "capacity_general", "applicants_general"]
 
 TAG = re.compile(r"<[^>]+>")
 SECTION = re.compile(r'strTitleId_\w+"\s+class="bul">\s*(.*?)\s*경쟁률\s*현황', re.S)
@@ -82,6 +84,18 @@ def summarize(result):
     return out
 
 
+def general_only(result):
+    """학생부교과 일반전형(정원내)만 추린 {학과: (모집, 지원)}.
+
+    작년 공개 수치가 일반전형 단독이라, 같은 기준으로 비교하려면 이 값이 필요하다.
+    """
+    out = {}
+    for name, _ in TARGETS:
+        rows = [r for r in result[name] if r[0].startswith("일반전형") and r[1] is not None]
+        out[name] = (sum(r[1] for r in rows), sum(r[3] for r in rows))
+    return out
+
+
 def build_message(ts, result):
     """카톡 200자 제한에 맞춘 요약. 형식: 학과 지원/모집 경쟁률 [+정원외지원]"""
     s = summarize(result)
@@ -127,9 +141,11 @@ def log_history(ts, result):
         w = csv.writer(fh)
         if fresh:
             w.writerow(CSV_HEADER)
+        g = general_only(result)
         for name, _ in TARGETS:
             mo, ji_in, ji_out = s[name]
-            w.writerow([stamp, name, mo, ji_in, ji_out])
+            gmo, gji = g[name]
+            w.writerow([stamp, name, mo, ji_in, ji_out, gmo, gji])
     return True
 
 
@@ -142,18 +158,34 @@ def build_site():
     stamps = sorted(t for t, v in by_ts.items() if len(v) == len(order))
     caps = [int(by_ts[stamps[-1]][n]["capacity"]) for n in order] if stamps else [0] * len(order)
 
+    def gcap(n):
+        """일반전형 모집인원 - 값이 있는 가장 최근 시점 기준."""
+        for t in reversed(stamps):
+            v = (by_ts[t][n].get("capacity_general") or "").strip()
+            if v.isdigit() and int(v) > 0:
+                return int(v)
+        return 0
+
+    gcaps = [gcap(n) for n in order]
+
     out = ["// 자동 생성 파일 - fetch_ratio.py --build 로 갱신한다. 직접 고치지 말 것.",
            "const CHART = {",
            "  depts: [",
-           ",\n".join('    { name: "%s", short: "%s", cap: %d }' % (n, s, c)
-                      for (n, s), c in zip(TARGETS, caps)),
+           ",\n".join('    { name: "%s", short: "%s", cap: %d, capGen: %d }' % (n, s, c, gc)
+                      for (n, s), c, gc in zip(TARGETS, caps, gcaps)),
            "  ],",
+           "  // [기준시각, 정원내 지원, 정원외 지원, 일반전형 지원(없으면 null)]",
            "  rows: ["]
     for t in stamps:
-        out.append('    ["%s",[%s],[%s]],' % (
+        gen = []
+        for n in order:
+            v = (by_ts[t][n].get("applicants_general") or "").strip()
+            gen.append(v if v.isdigit() else "null")
+        out.append('    ["%s",[%s],[%s],[%s]],' % (
             t,
             ",".join(by_ts[t][n]["applicants"] for n in order),
-            ",".join(by_ts[t][n]["applicants_extra"] for n in order)))
+            ",".join(by_ts[t][n]["applicants_extra"] for n in order),
+            ",".join(gen)))
     out += ["  ]", "};", ""]
 
     os.makedirs(os.path.dirname(SITE_DATA), exist_ok=True)

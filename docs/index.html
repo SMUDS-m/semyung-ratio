@@ -74,6 +74,7 @@
   .ref-text{fill:var(--text-muted);font-size:14px}
   .series{fill:none;stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
   .endlabel{fill:var(--text-primary);font-size:17px;font-weight:650;font-variant-numeric:tabular-nums}
+  .ly-text{fill:var(--text-muted);font-size:13px;font-variant-numeric:tabular-nums}
   .crosshair{stroke:var(--rule);stroke-width:1.2}
   .halo{stroke:var(--surface-1);stroke-width:2}
 
@@ -106,6 +107,13 @@
   th,td{padding:.45rem .7rem;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
   th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface-1)}
   thead th{color:var(--text-secondary);font-weight:600;border-bottom:1px solid var(--rule)}
+  .lynote{
+    margin:.9rem 0 0;padding:.6rem .75rem;border-left:3px solid var(--rule);
+    background:var(--surface-0);border-radius:.3rem;
+    color:var(--text-secondary);font-size:.84rem;line-height:1.6
+  }
+  .lynote a{color:inherit}
+  .tile .prog{color:var(--text-muted);font-size:.76rem;font-variant-numeric:tabular-nums}
   footer{margin-top:1.5rem;color:var(--text-muted);font-size:.86rem;line-height:1.7}
 </style>
 </head>
@@ -138,6 +146,7 @@
       <div class="tip" id="tip"></div>
     </div>
     <div class="legend" id="legend"></div>
+    <p class="lynote" id="lynote" hidden></p>
   </div>
 
   <details>
@@ -199,8 +208,17 @@
         + '<div class="nm"><span class="dot" style="background:var('+SER[i]+')"></span>'+d.short+'</div>'
         + '<div class="val">'+(a/d.cap).toFixed(2)+':1</div>'
         + '<div class="meta">'+a+'명 / '+d.cap+'명'+(ex?' · 정원외 +'+ex:'')+'</div>'
+        + prog(i, last)
         + '</div>';
     }).join("");
+  }
+
+  // 작년 최종 대비 진행률 (같은 일반전형 기준끼리 비교)
+  function prog(i, last){
+    if (typeof LASTYEAR === "undefined") return "";
+    var ly = LASTYEAR.ratio[D[i].name], g = last[3] ? last[3][i] : null;
+    if (!ly || g === null || g === undefined || !D[i].capGen) return "";
+    return '<div class="prog">작년 최종 대비 ' + Math.round((g / D[i].capGen) / ly * 100) + '%</div>';
   }
 
   /* ---------- 범례 ---------- */
@@ -249,7 +267,12 @@
     document.getElementById("chart").setAttribute("viewBox", "0 0 " + W + " " + H);
     var vis = D.map(function(_,i){ return i; }).filter(function(i){ return on[i]; });
     var peak = 0;
-    ROWS.forEach(function(_,r){ vis.forEach(function(i){ peak = Math.max(peak, val(r,i)); }); });
+    ROWS.forEach(function(_,r){ vis.forEach(function(i){
+      var v = val(r,i); if (v !== null) peak = Math.max(peak, v);
+    }); });
+    if (mode === "vs") vis.forEach(function(i){
+      var ly = lastRatio(i); if (ly) peak = Math.max(peak, ly);
+    });
     var ymax = niceMax(peak * 1.08) || 1;
     var Y = function(v){ return MT + PH - v / ymax * PH; };
 
@@ -289,16 +312,47 @@
       + label(ROWS[ROWS.length-1][0]) + '</text>');
 
     // 선
+    // 작년 최종 경쟁률 - 가로 점선 (vs 모드 전용, 왼쪽에 라벨)
+    if (mode === "vs"){
+      var lys = vis.map(function(i){
+        var ly = lastRatio(i);
+        return ly ? { i:i, ly:ly, y:Y(ly) } : null;
+      }).filter(Boolean).sort(function(a,b){ return a.y - b.y; });
+
+      // 가까이 붙은 라벨은 가로로 밀어 겹치지 않게 한다
+      var slot = 0;
+      lys.forEach(function(l, k){
+        slot = (k > 0 && l.y - lys[k-1].y < 18) ? slot + 1 : 0;
+        l.lx = ML + 6 + slot * 78;
+      });
+
+      lys.forEach(function(l){
+        out.push('<line x1="'+ML+'" y1="'+l.y.toFixed(1)+'" x2="'+(ML+PW)+'" y2="'+l.y.toFixed(1)
+          + '" stroke="var('+SER[l.i]+')" stroke-width="1.6" stroke-dasharray="7 5" opacity=".55"/>');
+        out.push('<text class="ly-text" x="'+l.lx.toFixed(1)+'" y="'+(l.y-6).toFixed(1)+'">작년 '
+          + l.ly.toFixed(2)+'</text>');
+      });
+    }
+
     vis.forEach(function(i){
-      var pts = ROWS.map(function(r,ri){ return X(xs[ri]).toFixed(1)+","+Y(val(ri,i)).toFixed(1); });
-      out.push('<polyline class="series" stroke="var('+SER[i]+')" points="'+pts.join(" ")+'"/>');
+      var live = liveRows(i);
+      if (!live.length) return;
+      var pts = live.map(function(ri){ return X(xs[ri]).toFixed(1)+","+Y(val(ri,i)).toFixed(1); });
+      if (live.length === 1){
+        out.push('<circle class="halo" cx="'+X(xs[live[0]]).toFixed(1)+'" cy="'+Y(val(live[0],i)).toFixed(1)
+          + '" r="5" fill="var('+SER[i]+')"/>');
+      } else {
+        out.push('<polyline class="series" stroke="var('+SER[i]+')" points="'+pts.join(" ")+'"/>');
+      }
     });
 
     // 끝점 마커 + 최신값 직접 라벨 (충돌 회피)
-    var lastIdx = ROWS.length - 1;
     var labs = vis.map(function(i){
-      return { i:i, y:Y(val(lastIdx,i)), v:val(lastIdx,i) };
-    }).sort(function(a,b){ return a.y - b.y; });
+      var live = liveRows(i);
+      if (!live.length) return null;
+      var li = live[live.length-1];
+      return { i:i, y:Y(val(li,i)), v:val(li,i), x:X(xs[li]) };
+    }).filter(Boolean).sort(function(a,b){ return a.y - b.y; });
     var MIN = 21;
     for (var k = 1; k < labs.length; k++){
       if (labs[k].y - labs[k-1].y < MIN) labs[k].y = labs[k-1].y + MIN;
@@ -309,7 +363,7 @@
     var lx = ML + PW;
     labs.forEach(function(l){
       var cy = Y(l.v);
-      out.push('<circle class="halo" cx="'+lx+'" cy="'+cy.toFixed(1)+'" r="5" fill="var('+SER[l.i]+')"/>');
+      out.push('<circle class="halo" cx="'+l.x.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="5" fill="var('+SER[l.i]+')"/>');
       // 라벨이 밀렸으면 끌어주는 선
       if (Math.abs(l.y - cy) > 1.5){
         out.push('<line x1="'+(lx+6)+'" y1="'+cy.toFixed(1)+'" x2="'+(lx+13)+'" y2="'+l.y.toFixed(1)
@@ -344,7 +398,7 @@
       var px = X(xs[best]);
       g.style.display = "";
       ch.setAttribute("x1", px); ch.setAttribute("x2", px);
-      hd.innerHTML = vis.map(function(i){
+      hd.innerHTML = vis.filter(function(i){ return val(best,i) !== null; }).map(function(i){
         return '<circle class="halo" cx="'+px.toFixed(1)+'" cy="'+Y(val(best,i)).toFixed(1)
           + '" r="5.5" fill="var('+SER[i]+')"/>';
       }).join("");
@@ -352,9 +406,12 @@
       tip.className = "tip on";
       tip.innerHTML = '<div class="t">'+label(ROWS[best][0])+'</div>'
         + vis.map(function(i){
+            var v = val(best,i);
             return '<div class="r"><span class="dot" style="background:var('+SER[i]+')"></span>'
               + '<span class="n">'+D[i].short+'</span>'
-              + '<span class="v">'+fmtLong(val(best,i))+'</span></div>';
+              + '<span class="v">'+(v === null ? "–" : fmtLong(v))
+              + (mode === "vs" && lastRatio(i) ? ' <span style="opacity:.6">/ 작년 '+lastRatio(i).toFixed(2)+'</span>' : '')
+              + '</span></div>';
           }).join("");
 
       var bw = box.clientWidth, scale = bw / W;
@@ -388,14 +445,40 @@
   }
 
   /* ---------- 모드 전환 ---------- */
+  var HINT = {
+    ratio: "선 끝의 숫자가 최신값입니다",
+    count: "선 끝의 숫자가 최신값입니다",
+    vs:    "실선=올해 일반전형 · 점선=작년 최종 (같은 기준으로 맞춘 값)"
+  };
   function setMode(m){
     mode = m;
-    document.getElementById("m-ratio").setAttribute("aria-pressed", m === "ratio");
-    document.getElementById("m-count").setAttribute("aria-pressed", m === "count");
+    ["ratio","count","vs"].forEach(function(k){
+      document.getElementById("m-"+k).setAttribute("aria-pressed", m === k);
+    });
+    document.getElementById("hint").textContent = HINT[m];
+    document.getElementById("lynote").hidden = (m !== "vs");
     draw();
   }
-  document.getElementById("m-ratio").onclick = function(){ setMode("ratio"); };
-  document.getElementById("m-count").onclick = function(){ setMode("count"); };
+  ["ratio","count","vs"].forEach(function(k){
+    document.getElementById("m-"+k).onclick = function(){ setMode(k); };
+  });
+
+  // 작년 비교선 출처/한계 안내
+  (function(){
+    if (typeof LASTYEAR === "undefined") return;
+    var el = document.getElementById("lynote");
+    var renamed = Object.keys(LASTYEAR.renamed || {}).map(function(k){
+      return k + "(작년 " + LASTYEAR.renamed[k] + ")";
+    }).join(", ");
+    el.innerHTML =
+      (LASTYEAR.verified ? "" : "<strong>⚠ 미검증 참고치입니다.</strong> ")
+      + "점선은 " + LASTYEAR.basis + "이며, 출처는 <a href=\"" + LASTYEAR.sourceUrl
+      + "\" target=\"_blank\" rel=\"noopener\">" + LASTYEAR.source
+      + "</a>입니다. 대학 공식 발표로 교차 검증하지 못했습니다."
+      + "<br>올해 실선도 같은 기준(학생부교과 일반전형)으로 맞췄지만, "
+      + "일반전형 기준 기록은 최근에 시작해 앞 구간이 비어 있습니다 — 시간이 지나며 채워집니다."
+      + (renamed ? "<br>학과 개편으로 이름이 바뀐 곳: " + renamed + ". 모집인원 구성이 달라졌을 수 있습니다." : "");
+  })();
 
   tiles(); legend(); table(); draw();
   window.addEventListener("resize", function(){ draw(); });
