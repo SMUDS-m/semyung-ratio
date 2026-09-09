@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>세명대 2027 수시 지원 현황 추이</title>
+<style>
+  :root{
+    color-scheme: light;
+    --surface-0:#f4f3f0; --surface-1:#fcfcfb; --border:#e2e1dc;
+    --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#84837d;
+    --grid:#e8e7e2; --rule:#b9b8b2;
+    --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --surface-0:#111110; --surface-1:#1a1a19; --border:#33322f;
+      --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#8d8c84;
+      --grid:#2b2b28; --rule:#565550;
+      --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300;
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --surface-0:#111110; --surface-1:#1a1a19; --border:#33322f;
+    --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#8d8c84;
+    --grid:#2b2b28; --rule:#565550;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:24px 16px 56px; background:var(--surface-0); color:var(--text-primary);
+    font:14px/1.55 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",
+         "Noto Sans KR",system-ui,sans-serif;
+  }
+  .wrap{max-width:1000px;margin:0 auto}
+  header{margin-bottom:20px}
+  h1{margin:0 0 6px;font-size:20px;letter-spacing:-.01em}
+  .sub{color:var(--text-secondary);font-size:13px;margin:0}
+  .sub a{color:inherit}
+  .card{background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:16px}
+
+  /* 현재값 타일 */
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:16px}
+  .tile{background:var(--surface-1);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+  .tile .nm{display:flex;align-items:center;gap:6px;color:var(--text-secondary);font-size:12px;margin-bottom:3px}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .tile .val{font-size:20px;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .tile .meta{color:var(--text-muted);font-size:11px;font-variant-numeric:tabular-nums}
+
+  /* 컨트롤 */
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+  .seg{display:inline-flex;background:var(--surface-1);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .seg button{
+    appearance:none;border:0;background:transparent;color:var(--text-secondary);
+    padding:7px 14px;font:inherit;font-size:13px;cursor:pointer
+  }
+  .seg button[aria-pressed="true"]{background:var(--text-primary);color:var(--surface-1);font-weight:600}
+  .spacer{flex:1}
+  .hint{color:var(--text-muted);font-size:12px}
+
+  /* 차트 */
+  .chartbox{position:relative}
+  svg{display:block;width:100%;height:auto;overflow:visible;touch-action:pan-y}
+  .gridline{stroke:var(--grid);stroke-width:1}
+  .axis-text{fill:var(--text-muted);font-size:11px;font-variant-numeric:tabular-nums}
+  .ref{stroke:var(--rule);stroke-width:1;stroke-dasharray:4 4}
+  .ref-text{fill:var(--text-muted);font-size:10.5px}
+  .series{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+  .endlabel{fill:var(--text-primary);font-size:12px;font-weight:650;font-variant-numeric:tabular-nums}
+  .crosshair{stroke:var(--rule);stroke-width:1}
+  .halo{stroke:var(--surface-1);stroke-width:2}
+
+  /* 범례 */
+  .legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+  .legend button{
+    display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--border);
+    border-radius:999px;padding:5px 11px;font:inherit;font-size:12.5px;color:var(--text-secondary);cursor:pointer
+  }
+  .legend button[aria-pressed="false"]{opacity:.4}
+  .legend button:hover{border-color:var(--rule)}
+
+  /* 툴팁 */
+  .tip{
+    position:absolute;pointer-events:none;z-index:5;min-width:172px;
+    background:var(--surface-1);border:1px solid var(--border);border-radius:9px;
+    padding:9px 11px;box-shadow:0 6px 22px rgba(0,0,0,.16);opacity:0;transition:opacity .1s
+  }
+  .tip.on{opacity:1}
+  .tip .t{color:var(--text-secondary);font-size:11.5px;margin-bottom:6px}
+  .tip .r{display:flex;align-items:center;gap:7px;font-size:12.5px;padding:1.5px 0}
+  .tip .r .n{color:var(--text-secondary);flex:1;white-space:nowrap}
+  .tip .r .v{font-variant-numeric:tabular-nums;font-weight:600}
+
+  /* 표 */
+  details{margin-top:18px}
+  summary{cursor:pointer;color:var(--text-secondary);font-size:13px;padding:6px 0}
+  .tablewrap{overflow-x:auto;margin-top:8px}
+  table{border-collapse:collapse;font-size:12.5px;white-space:nowrap;min-width:100%}
+  th,td{padding:6px 10px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+  th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface-1)}
+  thead th{color:var(--text-secondary);font-weight:600;border-bottom:1px solid var(--rule)}
+  footer{margin-top:24px;color:var(--text-muted);font-size:12px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>세명대 2027학년도 수시 지원 현황 추이</h1>
+    <p class="sub">
+      매시간 자동 수집 · 마지막 갱신 <strong id="updated">—</strong> ·
+      출처 <a href="https://ratio.uwayapply.com/Sl5Kclc6Yk1gJkpmJSY6Jko3ZlRm" target="_blank" rel="noopener">유웨이 경쟁률 페이지</a>
+    </p>
+  </header>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="표시 지표">
+      <button id="m-ratio" aria-pressed="true">경쟁률</button>
+      <button id="m-count" aria-pressed="false">지원자 수</button>
+    </div>
+    <div class="spacer"></div>
+    <span class="hint">선 끝의 숫자가 최신값입니다</span>
+  </div>
+
+  <div class="card">
+    <div class="chartbox" id="chartbox">
+      <svg id="chart" viewBox="0 0 900 420" preserveAspectRatio="xMidYMid meet" role="img"
+           aria-label="학과별 지원 현황 시계열 그래프"></svg>
+      <div class="tip" id="tip"></div>
+    </div>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <details>
+    <summary>데이터 표로 보기 (최근 24개 시점)</summary>
+    <div class="tablewrap card" id="tablewrap"></div>
+  </details>
+
+  <footer>
+    경쟁률 = 지원인원 ÷ 정원내 모집인원. 정원외 전형(농어촌·특성화고교·기초생활수급자) 지원자는 타일에 <strong>+N</strong>으로 따로 표기했고 경쟁률 계산에서는 제외했습니다.<br>
+    비공식 자동 수집 자료로, 정확한 수치는 반드시 위 공식 페이지를 확인하세요.
+  </footer>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  var SER = ["--s1","--s2","--s3","--s4","--s5","--s6"];
+  var D = CHART.depts, ROWS = CHART.rows;
+  var mode = "ratio";
+  var on = D.map(function(){ return true; });
+
+  function color(i){
+    return getComputedStyle(document.documentElement).getPropertyValue(SER[i]).trim();
+  }
+  function tms(s){ return new Date(s + ":00").getTime(); }
+  function val(rowIdx, di){
+    var a = ROWS[rowIdx][1][di];
+    return mode === "ratio" ? a / D[di].cap : a;
+  }
+  function fmt(v){ return mode === "ratio" ? v.toFixed(2) : String(Math.round(v)); }
+  function fmtLong(v){ return mode === "ratio" ? v.toFixed(2) + ":1" : Math.round(v) + "명"; }
+  function label(s){
+    var d = new Date(s + ":00");
+    return (d.getMonth()+1) + "/" + d.getDate() + " " + String(d.getHours()).padStart(2,"0") + "시";
+  }
+
+  /* ---------- 현재값 타일 ---------- */
+  function tiles(){
+    var last = ROWS[ROWS.length-1];
+    document.getElementById("updated").textContent = label(last[0]);
+    document.getElementById("tiles").innerHTML = D.map(function(d,i){
+      var a = last[1][i], ex = last[2][i];
+      return '<div class="tile">'
+        + '<div class="nm"><span class="dot" style="background:var('+SER[i]+')"></span>'+d.short+'</div>'
+        + '<div class="val">'+(a/d.cap).toFixed(2)+':1</div>'
+        + '<div class="meta">'+a+'명 / '+d.cap+'명'+(ex?' · 정원외 +'+ex:'')+'</div>'
+        + '</div>';
+    }).join("");
+  }
+
+  /* ---------- 범례 ---------- */
+  function legend(){
+    var el = document.getElementById("legend");
+    el.innerHTML = D.map(function(d,i){
+      return '<button data-i="'+i+'" aria-pressed="'+on[i]+'">'
+        + '<span class="dot" style="background:var('+SER[i]+')"></span>'+d.short+'</button>';
+    }).join("");
+    el.querySelectorAll("button").forEach(function(b){
+      b.onclick = function(){
+        var i = +b.dataset.i;
+        if (on[i] && on.filter(Boolean).length === 1) return;  // 최소 1개는 유지
+        on[i] = !on[i];
+        b.setAttribute("aria-pressed", on[i]);
+        draw();
+      };
+    });
+  }
+
+  /* ---------- 차트 ---------- */
+  var W = 900, H = 420, ML = 46, MR = 82, MT = 14, MB = 34;
+  var PW = W - ML - MR, PH = H - MT - MB;
+  var xs = ROWS.map(function(r){ return tms(r[0]); });
+  var x0 = xs[0], x1 = xs[xs.length-1];
+  var X = function(t){ return ML + (x1 === x0 ? PW : (t - x0) / (x1 - x0) * PW); };
+
+  function niceMax(v){
+    if (v <= 0) return 1;
+    var p = Math.pow(10, Math.floor(Math.log10(v)));
+    return Math.ceil(v / (p/2)) * (p/2);
+  }
+
+  function draw(){
+    var vis = D.map(function(_,i){ return i; }).filter(function(i){ return on[i]; });
+    var peak = 0;
+    ROWS.forEach(function(_,r){ vis.forEach(function(i){ peak = Math.max(peak, val(r,i)); }); });
+    var ymax = niceMax(peak * 1.08) || 1;
+    var Y = function(v){ return MT + PH - v / ymax * PH; };
+
+    var out = [];
+
+    // 가로 그리드 + y축
+    var steps = 5;
+    for (var s = 0; s <= steps; s++){
+      var v = ymax * s / steps, y = Y(v);
+      out.push('<line class="gridline" x1="'+ML+'" y1="'+y.toFixed(1)+'" x2="'+(ML+PW)+'" y2="'+y.toFixed(1)+'"/>');
+      out.push('<text class="axis-text" x="'+(ML-8)+'" y="'+(y+3.5).toFixed(1)+'" text-anchor="end">'
+        + (mode === "ratio" ? v.toFixed(1) : Math.round(v)) + '</text>');
+    }
+
+    // 경쟁률 1:1 기준선
+    if (mode === "ratio" && ymax >= 1){
+      var y1 = Y(1);
+      out.push('<line class="ref" x1="'+ML+'" y1="'+y1.toFixed(1)+'" x2="'+(ML+PW)+'" y2="'+y1.toFixed(1)+'"/>');
+      out.push('<text class="ref-text" x="'+(ML+4)+'" y="'+(y1-5).toFixed(1)+'">모집인원 = 지원인원 (1.00:1)</text>');
+    }
+
+    // x축 눈금: 자정/정오
+    var seen = {};
+    ROWS.forEach(function(r){
+      var d = new Date(r[0] + ":00"), h = d.getHours();
+      if (h !== 0 && h !== 12) return;
+      var k = r[0].slice(0,10) + h;
+      if (seen[k]) return;
+      seen[k] = 1;
+      var x = X(tms(r[0]));
+      out.push('<line class="gridline" x1="'+x.toFixed(1)+'" y1="'+MT+'" x2="'+x.toFixed(1)+'" y2="'+(MT+PH)+'"/>');
+      out.push('<text class="axis-text" x="'+x.toFixed(1)+'" y="'+(MT+PH+16)+'" text-anchor="middle">'
+        + (h === 0 ? (d.getMonth()+1)+"/"+d.getDate() : "12시") + '</text>');
+    });
+    // 마지막 시점 눈금
+    out.push('<text class="axis-text" x="'+(ML+PW)+'" y="'+(MT+PH+16)+'" text-anchor="end">'
+      + label(ROWS[ROWS.length-1][0]) + '</text>');
+
+    // 선
+    vis.forEach(function(i){
+      var pts = ROWS.map(function(r,ri){ return X(xs[ri]).toFixed(1)+","+Y(val(ri,i)).toFixed(1); });
+      out.push('<polyline class="series" stroke="var('+SER[i]+')" points="'+pts.join(" ")+'"/>');
+    });
+
+    // 끝점 마커 + 최신값 직접 라벨 (충돌 회피)
+    var lastIdx = ROWS.length - 1;
+    var labs = vis.map(function(i){
+      return { i:i, y:Y(val(lastIdx,i)), v:val(lastIdx,i) };
+    }).sort(function(a,b){ return a.y - b.y; });
+    var MIN = 15;
+    for (var k = 1; k < labs.length; k++){
+      if (labs[k].y - labs[k-1].y < MIN) labs[k].y = labs[k-1].y + MIN;
+    }
+    var over = labs.length ? labs[labs.length-1].y - (MT + PH) : 0;
+    if (over > 0) labs.forEach(function(l){ l.y -= over; });
+
+    var lx = ML + PW;
+    labs.forEach(function(l){
+      var cy = Y(l.v);
+      out.push('<circle class="halo" cx="'+lx+'" cy="'+cy.toFixed(1)+'" r="4" fill="var('+SER[l.i]+')"/>');
+      // 라벨이 밀렸으면 끌어주는 선
+      if (Math.abs(l.y - cy) > 1.5){
+        out.push('<line x1="'+(lx+5)+'" y1="'+cy.toFixed(1)+'" x2="'+(lx+11)+'" y2="'+l.y.toFixed(1)
+          + '" stroke="var('+SER[l.i]+')" stroke-width="1" opacity=".5"/>');
+      }
+      out.push('<text class="endlabel" x="'+(lx+14)+'" y="'+(l.y+4).toFixed(1)+'">'+fmt(l.v)+'</text>');
+    });
+
+    // 호버 레이어
+    out.push('<g id="hover" style="display:none">'
+      + '<line class="crosshair" id="ch" y1="'+MT+'" y2="'+(MT+PH)+'"/>'
+      + '<g id="hdots"></g></g>');
+    out.push('<rect id="hit" x="'+ML+'" y="'+MT+'" width="'+PW+'" height="'+PH+'" fill="transparent"/>');
+
+    document.getElementById("chart").innerHTML = out.join("");
+    wireHover(Y, vis);
+  }
+
+  /* ---------- 호버 ---------- */
+  function wireHover(Y, vis){
+    var svg = document.getElementById("chart"), hit = document.getElementById("hit");
+    var g = document.getElementById("hover"), ch = document.getElementById("ch");
+    var hd = document.getElementById("hdots"), tip = document.getElementById("tip");
+    var box = document.getElementById("chartbox");
+
+    function move(ev){
+      var pt = svg.getBoundingClientRect();
+      var sx = (ev.clientX - pt.left) / pt.width * W;
+      var best = 0, bd = Infinity;
+      xs.forEach(function(t,i){ var d = Math.abs(X(t) - sx); if (d < bd){ bd = d; best = i; } });
+
+      var px = X(xs[best]);
+      g.style.display = "";
+      ch.setAttribute("x1", px); ch.setAttribute("x2", px);
+      hd.innerHTML = vis.map(function(i){
+        return '<circle class="halo" cx="'+px.toFixed(1)+'" cy="'+Y(val(best,i)).toFixed(1)
+          + '" r="4.5" fill="var('+SER[i]+')"/>';
+      }).join("");
+
+      tip.className = "tip on";
+      tip.innerHTML = '<div class="t">'+label(ROWS[best][0])+'</div>'
+        + vis.map(function(i){
+            return '<div class="r"><span class="dot" style="background:var('+SER[i]+')"></span>'
+              + '<span class="n">'+D[i].short+'</span>'
+              + '<span class="v">'+fmtLong(val(best,i))+'</span></div>';
+          }).join("");
+
+      var bw = box.clientWidth, scale = bw / W;
+      var left = px * scale + 16;
+      if (left + tip.offsetWidth > bw) left = px * scale - tip.offsetWidth - 16;
+      tip.style.left = Math.max(0, left) + "px";
+      tip.style.top = "8px";
+    }
+    function leave(){ g.style.display = "none"; tip.className = "tip"; }
+
+    hit.addEventListener("mousemove", move);
+    hit.addEventListener("mouseleave", leave);
+    hit.addEventListener("touchmove", function(e){ move(e.touches[0]); }, {passive:true});
+    hit.addEventListener("touchstart", function(e){ move(e.touches[0]); }, {passive:true});
+    hit.addEventListener("touchend", leave);
+  }
+
+  /* ---------- 표 ---------- */
+  function table(){
+    var rows = ROWS.slice(-24).reverse();
+    var h = '<table><thead><tr><th>시각</th>'
+      + D.map(function(d){ return '<th>'+d.short+'</th>'; }).join("")
+      + '</tr></thead><tbody>'
+      + rows.map(function(r){
+          return '<tr><td>'+label(r[0])+'</td>'
+            + D.map(function(d,i){ return '<td>'+r[1][i]+' / '+(r[1][i]/d.cap).toFixed(2)+'</td>'; }).join("")
+            + '</tr>';
+        }).join("")
+      + '</tbody></table>';
+    document.getElementById("tablewrap").innerHTML = h;
+  }
+
+  /* ---------- 모드 전환 ---------- */
+  function setMode(m){
+    mode = m;
+    document.getElementById("m-ratio").setAttribute("aria-pressed", m === "ratio");
+    document.getElementById("m-count").setAttribute("aria-pressed", m === "count");
+    draw();
+  }
+  document.getElementById("m-ratio").onclick = function(){ setMode("ratio"); };
+  document.getElementById("m-count").onclick = function(){ setMode("count"); };
+
+  tiles(); legend(); table(); draw();
+  window.addEventListener("resize", function(){ draw(); });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+})();
+</script>
+</body>
+</html>
