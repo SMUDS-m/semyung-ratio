@@ -1,20 +1,20 @@
 // 자동 생성 - fetch_ratio.py 실행 때마다 갱신. 현재 시점 스냅샷만 담는다.
 const BREAKDOWN = {
-  at: "9/11 3:00",
+  at: "9/11 4:00",
   univ: {
-    capIn: 1379, appIn: 4710, capOut: 80, appOut: 393,
+    capIn: 1379, appIn: 4721, capOut: 80, appOut: 396,
     byType: [
-      { name: "일반", cap: 803, app: 2484, outside: false },
-      { name: "인문계고교", cap: 265, app: 921, outside: false },
+      { name: "일반", cap: 803, app: 2490, outside: false },
+      { name: "인문계고교", cap: 265, app: 922, outside: false },
       { name: "사회배려", cap: 26, app: 101, outside: false },
-      { name: "지역인재", cap: 98, app: 376, outside: false },
+      { name: "지역인재", cap: 98, app: 377, outside: false },
       { name: "지역인재(기회)", cap: 4, app: 22, outside: false },
       { name: "특성화고교", cap: 57, app: 75, outside: false },
-      { name: "면접우수", cap: 93, app: 466, outside: false },
-      { name: "SMU의료", cap: 33, app: 265, outside: false },
+      { name: "면접우수", cap: 93, app: 468, outside: false },
+      { name: "SMU의료", cap: 33, app: 266, outside: false },
       { name: "농어촌", cap: 35, app: 168, outside: true },
       { name: "특성화고(외)", cap: 10, app: 58, outside: true },
-      { name: "기초생활", cap: 35, app: 167, outside: true }
+      { name: "기초생활", cap: 35, app: 170, outside: true }
     ]
   },
   depts: {
@@ -44,10 +44,10 @@ const BREAKDOWN = {
       { name: "기초생활", cap: 4, capRaw: "4명 이내", app: 4, outside: true }
     ],
     "건축학과": [
-      { name: "일반", cap: 35, capRaw: "35", app: 65, outside: false },
+      { name: "일반", cap: 35, capRaw: "35", app: 66, outside: false },
       { name: "농어촌", cap: 3, capRaw: "3명 이내", app: 1, outside: true },
       { name: "특성화고(외)", cap: 3, capRaw: "3명 이내", app: 5, outside: true },
-      { name: "기초생활", cap: 3, capRaw: "3명 이내", app: 2, outside: true }
+      { name: "기초생활", cap: 3, capRaw: "3명 이내", app: 3, outside: true }
     ],
     "재난안전학과": [
       { name: "일반", cap: 20, capRaw: "20", app: 47, outside: false },
