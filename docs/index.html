@@ -108,6 +108,25 @@
   th,td{padding:.45rem .7rem;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
   th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface-1)}
   thead th{color:var(--text-secondary);font-weight:600;border-bottom:1px solid var(--rule)}
+  .titlerow{display:flex;flex-wrap:wrap;align-items:flex-start;gap:1rem;justify-content:space-between}
+  .univ{
+    display:flex;align-items:baseline;gap:.5rem;flex-wrap:wrap;
+    background:var(--surface-1);border:1px solid var(--border);border-radius:.6rem;padding:.45rem .8rem
+  }
+  .univ-lb{color:var(--text-secondary);font-size:.85rem}
+  .univ-v{font-size:1.35rem;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .univ-m{color:var(--text-muted);font-size:.76rem;font-variant-numeric:tabular-nums;line-height:1.4}
+  .tag{
+    display:inline-block;border:1px solid var(--border);border-radius:.25rem;
+    padding:0 .25rem;font-size:.68rem;color:var(--text-muted);vertical-align:.06em
+  }
+  .bt{margin-top:.5rem;border-top:1px solid var(--border);padding-top:.4rem}
+  .bt-h{color:var(--text-muted);font-size:.68rem;margin-bottom:.15rem}
+  .bt-r{display:flex;gap:.35rem;font-size:.72rem;line-height:1.55;white-space:nowrap}
+  .bt-n{flex:1;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis}
+  .bt-v{color:var(--text-muted);font-variant-numeric:tabular-nums}
+  .bt-c{width:2.1rem;text-align:right;font-variant-numeric:tabular-nums;color:var(--text-primary)}
+  .bt-out .bt-n,.bt-out .bt-v{opacity:.75}
   .lynote{
     margin:.9rem 0 0;padding:.6rem .75rem;border-left:3px solid var(--rule);
     background:var(--surface-0);border-radius:.3rem;
@@ -121,7 +140,10 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>세명대 2027학년도 수시 지원 현황 추이</h1>
+    <div class="titlerow">
+      <h1>세명대 2027학년도 수시 지원 현황 추이</h1>
+      <div class="univ" id="univ" hidden></div>
+    </div>
     <p class="sub">
       매시간 자동 수집 · 마지막 갱신 <strong id="updated">—</strong> ·
       출처 <a href="https://ratio.uwayapply.com/Sl5Kclc6Yk1gJkpmJSY6Jko3ZlRm" target="_blank" rel="noopener">유웨이 경쟁률 페이지</a>
@@ -163,6 +185,7 @@
 
 <script src="data.js"></script>
 <script src="lastyear.js"></script>
+<script src="breakdown.js"></script>
 <script>
 (function(){
   var SER = ["--s1","--s2","--s3","--s4","--s5","--s6"];
@@ -212,11 +235,45 @@
       return '<div class="tile">'
         + '<div class="nm">' + '<svg class="sw" viewBox="0 0 24 10" aria-hidden="true">'+'<line x1="1" y1="5" x2="23" y2="5" stroke="var('+SER[i]+')" stroke-width="3" stroke-linecap="round" stroke-dasharray="'+DASH[i]+'"/></svg>' + d.short+'</div>'
         + '<div class="val">'+(a/d.cap).toFixed(2)+':1</div>'
-        + '<div class="meta">'+a+'명 / '+d.cap+'명'+(ex?' · 정원외 +'+ex:'')+'</div>'
+        + '<div class="meta">'+a+'명 / '+d.cap+'명 <span class="tag">전체</span></div>'
         + prog(i, last)
+        + byType(d.name)
         + '</div>';
     }).join("");
   }
+
+  // 학과 타일 안의 전형별 내역 (현재 시점 스냅샷)
+  function byType(deptName){
+    if (typeof BREAKDOWN === "undefined" || !BREAKDOWN.depts[deptName]) return "";
+    var rows = BREAKDOWN.depts[deptName];
+    var inside = rows.filter(function(r){ return !r.outside; });
+    var outside = rows.filter(function(r){ return r.outside; });
+    var h = '<div class="bt"><div class="bt-h">전형별</div>';
+    h += inside.map(function(r){
+      return '<div class="bt-r"><span class="bt-n">'+r.name+'</span>'
+        + '<span class="bt-v">'+r.app+'/'+r.cap+'</span>'
+        + '<span class="bt-c">'+(r.cap ? (r.app/r.cap).toFixed(2) : '–')+'</span></div>';
+    }).join("");
+    if (outside.length){
+      var oa = outside.reduce(function(t,r){ return t + r.app; }, 0);
+      h += '<div class="bt-r bt-out"><span class="bt-n">정원외 '+outside.length+'개</span>'
+        + '<span class="bt-v">'+oa+'명</span><span class="bt-c">–</span></div>';
+    }
+    return h + '</div>';
+  }
+
+  // 대학 전체 경쟁률 (제목 옆)
+  (function(){
+    if (typeof BREAKDOWN === "undefined" || !BREAKDOWN.univ) return;
+    var u = BREAKDOWN.univ, el = document.getElementById("univ");
+    var n = function(v){ return v.toLocaleString("ko-KR"); };
+    el.hidden = false;
+    el.innerHTML = '<span class="univ-lb">대학 전체</span>'
+      + '<span class="univ-v">'+(u.appIn/u.capIn).toFixed(2)+':1</span>'
+      + '<span class="univ-m">' + n(u.appIn) + '명 지원 / ' + n(u.capIn) + '명 모집'
+      + '<br>정원외 포함 ' + ((u.appIn+u.appOut)/(u.capIn+u.capOut)).toFixed(2) + ':1 ('
+      + n(u.appIn+u.appOut) + '명 / ' + n(u.capIn+u.capOut) + '명)</span>';
+  })();
 
   // 작년 최종 대비 진행률 (같은 일반전형 기준끼리 비교)
   function prog(i, last){

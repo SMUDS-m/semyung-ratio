@@ -29,6 +29,7 @@ TARGETS = [
 BASE = os.path.dirname(os.path.abspath(__file__))
 CSV_PATH = os.path.join(BASE, "data", "ratio_history.csv")
 SITE_DATA = os.path.join(BASE, "docs", "data.js")
+BREAKDOWN = os.path.join(BASE, "docs", "breakdown.js")
 LASTYEAR = os.path.join(BASE, "docs", "lastyear.js")
 CSV_HEADER = ["collected_at", "department", "capacity", "applicants", "applicants_extra",
               "capacity_general", "applicants_general"]
@@ -42,6 +43,12 @@ CELL = re.compile(r"<td[^>]*>(.*?)</td>", re.S)
 def fetch(url=URL):
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     return urllib.request.urlopen(req, timeout=30).read().decode("euc-kr", errors="replace")
+
+
+def num(text):
+    """'2,008' -> 2008. 숫자가 아니면(예: '3명 이내') None."""
+    t = (text or "").replace(",", "").strip()
+    return int(t) if t.isdigit() else None
 
 
 def clean(cell):
@@ -66,11 +73,90 @@ def parse(html):
                 if name in cells:
                     j = cells.index(name)
                     mo_raw, ji_raw = (cells[j + 1: j + 3] + ["", ""])[:2]
-                    mo = int(mo_raw) if mo_raw.isdigit() else None  # '2명 이내' 등 정원외
-                    if ji_raw.isdigit():
-                        result[name].append((jeonhyeong, mo, mo_raw, int(ji_raw)))
+                    mo = num(mo_raw)          # '2명 이내' 등 정원외는 None
+                    ji = num(ji_raw)
+                    if ji is not None:
+                        result[name].append((jeonhyeong, mo, mo_raw, ji))
                     break
     return ts, result
+
+
+# 전형명을 타일에 넣을 짧은 이름으로
+SHORT_JEON = [
+    ("SMU의료인재", "SMU의료"), ("지역인재(기회균형)", "지역인재(기회)"), ("지역인재(일반)", "지역인재"),
+    ("사회배려자및봉사자", "사회배려"), ("특성화고교인재", "특성화고교"), ("인문계고교", "인문계고교"),
+    ("면접우수자", "면접우수"), ("농어촌학생", "농어촌"), ("기초생활수급자", "기초생활"),
+    ("특성화고교", "특성화고(외)"), ("일반", "일반"),
+]
+
+
+def short_jeon(name):
+    for key, short in SHORT_JEON:
+        if name.startswith(key):
+            return short
+    return re.sub(r"전형\(정원[내외]\)$", "", name)
+
+
+def university_total(html):
+    """맨 위 '전형별 경쟁률 현황' 요약표에서 대학 전체 수치를 합산한다.
+
+    반환: (정원내 모집, 정원내 지원, 정원외 모집, 정원외 지원, [전형별 행])
+    """
+    heads = list(SECTION.finditer(html))
+    if not heads or heads[0].group(1).strip() != "전형별":
+        return None
+    end = heads[1].start() if len(heads) > 1 else len(html)
+    cap_in = app_in = cap_out = app_out = 0
+    rows = []
+    for row in ROW.findall(html[heads[0].end():end]):
+        cells = [clean(c) for c in CELL.findall(row)]
+        if len(cells) < 3:
+            continue
+        label = re.sub(r"^\[[^\]]*\]\s*", "", cells[0]).split(":")[0].strip()
+        mo, ji = num(cells[1]), num(cells[2])
+        if mo is None or ji is None:
+            continue
+        outside = "(정원외)" in label
+        if outside:
+            cap_out += mo; app_out += ji
+        else:
+            cap_in += mo; app_in += ji
+        rows.append((short_jeon(label), mo, ji, outside))
+    return cap_in, app_in, cap_out, app_out, rows
+
+
+def build_breakdown(html, ts, result):
+    """현재 시점의 대학 전체 + 학과별 전형내역을 docs/breakdown.js 로 굽는다."""
+    uni = university_total(html)
+
+    def js(v):
+        return "null" if v is None else ('"%s"' % v if isinstance(v, str) else str(v))
+
+    out = ["// 자동 생성 - fetch_ratio.py 실행 때마다 갱신. 현재 시점 스냅샷만 담는다.",
+           "const BREAKDOWN = {", '  at: "%s",' % ts]
+    if uni:
+        ci, ai, co, ao, rows = uni
+        out += ["  univ: {",
+                "    capIn: %d, appIn: %d, capOut: %d, appOut: %d," % (ci, ai, co, ao),
+                "    byType: [",
+                ",\n".join('      { name: %s, cap: %d, app: %d, outside: %s }'
+                            % (js(n), m, a, "true" if o else "false") for n, m, a, o in rows),
+                "    ]", "  },"]
+    out.append("  depts: {")
+    parts = []
+    for name, _ in TARGETS:
+        rows = []
+        for jeon, mo, mo_raw, ji in result[name]:
+            rows.append('      { name: %s, cap: %s, capRaw: %s, app: %d, outside: %s }'
+                        % (js(short_jeon(jeon)), js(mo), js(mo_raw), ji,
+                           "true" if mo is None else "false"))
+        parts.append('    %s: [\n%s\n    ]' % (js(name), ",\n".join(rows)))
+    out += [",\n".join(parts), "  }", "};", ""]
+
+    os.makedirs(os.path.dirname(BREAKDOWN), exist_ok=True)
+    with open(BREAKDOWN, "w", encoding="utf-8") as fh:
+        fh.write("\n".join(out))
+    return uni
 
 
 def summarize(result):
@@ -199,8 +285,10 @@ def main():
         print("docs/data.js 갱신 - %d개 시점" % build_site())
         return
 
-    ts, result = parse(fetch())
+    html = fetch()
+    ts, result = parse(html)
     print(build_message(ts, result))
+    build_breakdown(html, ts, result)
 
     if "--log" in sys.argv:
         # 진단은 stderr 로 - stdout 은 카톡에 그대로 보낼 메시지만 남긴다.
