@@ -1,20 +1,20 @@
 // 자동 생성 - fetch_ratio.py 실행 때마다 갱신. 현재 시점 스냅샷만 담는다.
 const BREAKDOWN = {
-  at: "9/11 5:00",
+  at: "9/11 6:00",
   univ: {
-    capIn: 1379, appIn: 4724, capOut: 80, appOut: 396,
+    capIn: 1379, appIn: 4730, capOut: 80, appOut: 397,
     byType: [
-      { name: "일반", cap: 803, app: 2491, outside: false },
-      { name: "인문계고교", cap: 265, app: 924, outside: false },
+      { name: "일반", cap: 803, app: 2492, outside: false },
+      { name: "인문계고교", cap: 265, app: 927, outside: false },
       { name: "사회배려", cap: 26, app: 101, outside: false },
       { name: "지역인재", cap: 98, app: 377, outside: false },
       { name: "지역인재(기회)", cap: 4, app: 22, outside: false },
-      { name: "특성화고교", cap: 57, app: 75, outside: false },
-      { name: "면접우수", cap: 93, app: 468, outside: false },
+      { name: "특성화고교", cap: 57, app: 76, outside: false },
+      { name: "면접우수", cap: 93, app: 469, outside: false },
       { name: "SMU의료", cap: 33, app: 266, outside: false },
       { name: "농어촌", cap: 35, app: 168, outside: true },
       { name: "특성화고(외)", cap: 10, app: 58, outside: true },
-      { name: "기초생활", cap: 35, app: 170, outside: true }
+      { name: "기초생활", cap: 35, app: 171, outside: true }
     ]
   },
   depts: {
@@ -36,7 +36,7 @@ const BREAKDOWN = {
       { name: "기초생활", cap: 4, capRaw: "4명 이내", app: 2, outside: true }
     ],
     "전기전자공학과": [
-      { name: "일반", cap: 25, capRaw: "25", app: 101, outside: false },
+      { name: "일반", cap: 25, capRaw: "25", app: 102, outside: false },
       { name: "인문계고교", cap: 5, capRaw: "5", app: 47, outside: false },
       { name: "특성화고교", cap: 5, capRaw: "5", app: 12, outside: false },
       { name: "농어촌", cap: 4, capRaw: "4명 이내", app: 3, outside: true },
