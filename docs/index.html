@@ -63,6 +63,7 @@
     padding:.5rem 1rem;font:inherit;font-size:.95rem;cursor:pointer
   }
   .seg button[aria-pressed="true"]{background:var(--text-primary);color:var(--surface-1);font-weight:600}
+  .seg button small{font-size:.78em;opacity:.62;margin-left:.15rem}
   .spacer{flex:1}
   .hint{color:var(--text-muted);font-size:.86rem}
 
@@ -107,6 +108,7 @@
   table{border-collapse:collapse;font-size:.9rem;white-space:nowrap;min-width:100%}
   th,td{padding:.45rem .7rem;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
   th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface-1)}
+  caption{caption-side:top;text-align:left;color:var(--text-muted);font-size:.8rem;padding:0 0 .35rem}
   thead th{color:var(--text-secondary);font-weight:600;border-bottom:1px solid var(--rule)}
   .titlerow{display:flex;flex-wrap:wrap;align-items:flex-start;gap:1rem;justify-content:space-between}
   .univ{
@@ -156,8 +158,8 @@
 
   <div class="controls">
     <div class="seg" role="group" aria-label="표시 지표">
-      <button id="m-ratio" aria-pressed="true">경쟁률</button>
-      <button id="m-count" aria-pressed="false">지원자 수</button>
+      <button id="m-ratio" aria-pressed="true">경쟁률 <small>일반전형</small></button>
+      <button id="m-count" aria-pressed="false">지원자 수 <small>전체</small></button>
       <button id="m-vs" aria-pressed="false">작년 대비</button>
     </div>
     <div class="spacer"></div>
@@ -204,13 +206,10 @@
     return getComputedStyle(document.documentElement).getPropertyValue(SER[i]).trim();
   }
   function tms(s){ return new Date(s + ":00").getTime(); }
+  // 경쟁률 = 학생부교과 일반전형 단독 (작년 공개치와 같은 기준)
+  // 지원자 수 = 정원내 + 정원외 전체
   function val(rowIdx, di){
-    // "작년 대비" 탭은 경쟁률 탭과 같은 값(전 전형 합산)을 그린다 - 두 탭의 선이 일치한다.
-    var a = ROWS[rowIdx][1][di];
-    return mode === "count" ? a : a / D[di].cap;
-  }
-  // 학생부교과 일반전형 단독 경쟁률 (툴팁 보조 표시용, 기록이 있는 시점만)
-  function valGen(rowIdx, di){
+    if (mode === "count") return ROWS[rowIdx][1][di] + ROWS[rowIdx][2][di];
     var g = ROWS[rowIdx][3] ? ROWS[rowIdx][3][di] : null;
     if (g === null || g === undefined || !D[di].capGen) return null;
     return g / D[di].capGen;
@@ -289,10 +288,10 @@
   // 작년 최종 대비 진행률 (같은 일반전형 기준끼리 비교)
   function prog(i, last){
     if (typeof LASTYEAR === "undefined") return "";
-    var ly = LASTYEAR.ratio[D[i].name];
-    if (!ly) return "";
+    var ly = LASTYEAR.ratio[D[i].name], g = last[3] ? last[3][i] : null;
+    if (!ly || g === null || g === undefined || !D[i].capGen) return "";
     return '<div class="prog">작년 최종 대비 '
-      + Math.round((last[1][i] / D[i].cap) / ly * 100) + '%</div>';
+      + Math.round((g / D[i].capGen) / ly * 100) + '% <span class="tag">일반전형</span></div>';
   }
 
   /* ---------- 범례 ---------- */
@@ -508,12 +507,18 @@
   /* ---------- 표 ---------- */
   function table(){
     var rows = ROWS.slice(-24).reverse();
-    var h = '<table><thead><tr><th>시각</th>'
+    var h = '<table><caption>전체 지원자 수 / 일반전형 경쟁률</caption>'
+      + '<thead><tr><th>시각</th>'
       + D.map(function(d){ return '<th>'+d.short+'</th>'; }).join("")
       + '</tr></thead><tbody>'
       + rows.map(function(r){
           return '<tr><td>'+label(r[0])+'</td>'
-            + D.map(function(d,i){ return '<td>'+r[1][i]+' / '+(r[1][i]/d.cap).toFixed(2)+'</td>'; }).join("")
+            + D.map(function(d,i){
+                var tot = r[1][i] + r[2][i];
+                var g = r[3] ? r[3][i] : null;
+                var gr = (g !== null && g !== undefined && d.capGen) ? (g/d.capGen).toFixed(2) : '–';
+                return '<td>'+tot+'명 / '+gr+'</td>';
+              }).join("")
             + '</tr>';
         }).join("")
       + '</tbody></table>';
@@ -522,9 +527,9 @@
 
   /* ---------- 모드 전환 ---------- */
   var HINT = {
-    ratio: "선 끝의 숫자가 최신값입니다",
-    count: "선 끝의 숫자가 최신값입니다",
-    vs:    "실선=올해 현재까지 · 점선=작년 최종 (참고선)"
+    ratio: "학생부교과 일반전형 기준 · 9/9 17시부터 기록",
+    count: "정원내 + 정원외 전체 지원자",
+    vs:    "실선=올해 현재까지 · 굵은 선=작년 최종 (같은 일반전형 기준)"
   };
   function setMode(m){
     mode = m;
@@ -551,8 +556,8 @@
       + "점선은 " + LASTYEAR.basis + "이며, 출처는 <a href=\"" + LASTYEAR.sourceUrl
       + "\" target=\"_blank\" rel=\"noopener\">" + LASTYEAR.source
       + "</a>입니다. 대학 공식 발표로 교차 검증하지 못했습니다."
-      + "<br><strong>기준이 다릅니다.</strong> 실선(올해)은 전 전형 합산이고 점선(작년)은 일반전형 단독이라, "
-      + "정확한 1:1 비교가 아니라 <em>대략적인 참고선</em>입니다."
+      + "<br>올해 실선도 같은 기준(학생부교과 일반전형)이라 1:1로 견줄 수 있습니다. "
+      + "다만 일반전형 단독 기록은 2026-09-09 17시에 시작해 그 이전 구간은 비어 있습니다."
       + (renamed ? "<br>학과 개편으로 이름이 바뀐 곳: " + renamed + ". 모집인원 구성이 달라졌을 수 있습니다." : "");
   })();
 
