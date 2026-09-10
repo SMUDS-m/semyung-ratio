@@ -16,6 +16,8 @@ from datetime import datetime
 
 URL = "https://ratio.uwayapply.com/Sl5Kclc6Yk1gJkpmJSY6Jko3ZlRm"
 
+KAKAO_DEPT = "재난안전학과"   # 카톡으로 보낼 학과 (전형별 상세)
+
 # (페이지상 학과명, 카톡 표기용 짧은 이름)
 TARGETS = [
     ("AI컴퓨터학부", "AI컴퓨터"),
@@ -189,16 +191,24 @@ def general_only(result):
 
 
 def build_message(ts, result):
-    """카톡 200자 제한에 맞춘 요약. 형식: 학과 지원/모집 경쟁률 [+정원외지원]"""
-    s = summarize(result)
-    lines = ["[세명대수시] %s 기준 (지원/모집)" % ts]
-    for name, short in TARGETS:
-        mo, ji_in, ji_out = s[name]
-        extra = " +%d" % ji_out if ji_out else ""
-        lines.append("%s %d/%d %.2f%s" % (short, ji_in, mo, ji_in / mo if mo else 0, extra))
-    lines.append("※+는 정원외 지원")
-    msg = "\n".join(lines)
-    return msg[:200]
+    """카톡 200자 제한에 맞춘 KAKAO_DEPT 한 학과의 전형별 현황."""
+    rows = result.get(KAKAO_DEPT, [])
+    mo_in = sum(r[1] for r in rows if r[1] is not None)
+    ji_in = sum(r[3] for r in rows if r[1] is not None)
+
+    lines = ["[세명대수시] %s" % ts,
+             "%s %d/%d %.2f" % (KAKAO_DEPT, ji_in, mo_in, ji_in / mo_in if mo_in else 0)]
+    for jeon, mo, mo_raw, ji in rows:
+        if mo is None:                       # 정원외: 'N명 이내' 의 N 을 분모로
+            m = re.search(r"(\d[\d,]*)\s*명", mo_raw or "")
+            cap = num(m.group(1)) if m else None
+            cap_txt = "≤%d" % cap if cap else "-"
+        else:
+            cap, cap_txt = mo, str(mo)
+        ratio = "%.2f" % (ji / cap) if cap else "-"
+        lines.append("·%s %d/%s %s" % (short_jeon(jeon), ji, cap_txt, ratio))
+    lines.append("※≤는 정원외 상한")
+    return "\n".join(lines)[:200]
 
 
 # --- 이력 기록 -------------------------------------------------------------

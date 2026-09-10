@@ -41,13 +41,15 @@ CSV 컬럼: `collected_at`(페이지 기준시각, KST), `department`, `capacity
 ## 사용법
 
 ```
-python3 fetch_ratio.py            # 현재 현황 요약 출력
+python3 fetch_ratio.py            # 카톡용 메시지 출력 (재난안전학과 전형별)
 python3 fetch_ratio.py --detail   # 전형별 상세까지
 python3 fetch_ratio.py --log      # 요약 + CSV 기록 + docs/data.js 갱신
 python3 fetch_ratio.py --build    # 네트워크 없이 CSV -> docs/data.js 재생성
 ```
 
 `--log`는 같은 기준시각이 이미 CSV에 있으면 건너뛰므로 여러 번 실행해도 중복되지 않습니다.
+
+카카오톡으로 보낼 학과는 `fetch_ratio.py` 의 `KAKAO_DEPT` 상수로 바꿉니다. CSV·그래프는 6개 학과 전체를 계속 수집합니다.
 
 ## 산출 방식
 
