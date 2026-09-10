@@ -129,6 +129,14 @@
           line-height:1.4;white-space:nowrap}
   .unote{color:var(--text-muted);font-size:.7rem;margin-top:.3rem;
          border-top:1px solid var(--border);padding-top:.25rem}
+  /* 좁은 화면: 숫자 아래로 설명을 접어 넣는다 (nowrap 때문에 잘리던 문제) */
+  @media (max-width:660px){
+    .univ{width:100%}
+    .urow{grid-template-columns:auto 1fr}
+    .urow + .urow{margin-top:.4rem}
+    .univ-v{text-align:left}
+    .univ-m{grid-column:1/-1;white-space:normal;line-height:1.5}
+  }
   .tag-main{color:var(--accent);border-color:var(--accent)}
   .tag{
     display:inline-block;border:1px solid var(--border);border-radius:.25rem;
@@ -176,6 +184,11 @@
       <button id="m-ratio" aria-pressed="true">경쟁률 <small>일반전형</small></button>
       <button id="m-count" aria-pressed="false">지원자 수 <small>전체</small></button>
       <button id="m-vs" aria-pressed="false">작년 대비</button>
+    </div>
+    <div class="seg" role="group" aria-label="표시 구간">
+      <button id="r-12" aria-pressed="true">12시간</button>
+      <button id="r-24" aria-pressed="false">24시간</button>
+      <button id="r-0" aria-pressed="false">전체</button>
     </div>
     <div class="spacer"></div>
     <span class="hint" id="hint">선 끝의 숫자가 최신값입니다</span>
@@ -360,17 +373,20 @@
     PW = W - ML - MR;
     PH = H - MT - MB;
   }
-  var VIEW_HOURS = 12;                 // 그래프에 보여줄 최근 구간
+  var VIEW_HOURS = 12;                 // 그래프에 보여줄 최근 구간 (0 = 전체)
+  try { var sv = localStorage.getItem("ratioRange"); if (sv !== null) VIEW_HOURS = +sv; } catch(e){}
   var xs = ROWS.map(function(r){ return tms(r[0]); });
   var IDX = [];                        // 화면에 그릴 행 인덱스 (draw 에서 갱신)
   var x0, x1;
   var X = function(t){ return ML + (x1 === x0 ? PW : (t - x0) / (x1 - x0) * PW); };
 
   function setWindow(){
-    var cut = xs[xs.length-1] - VIEW_HOURS * 3600 * 1000;
     IDX = [];
-    for (var i = 0; i < ROWS.length; i++) if (xs[i] >= cut) IDX.push(i);
-    if (IDX.length < 2) IDX = ROWS.map(function(_, i){ return i; });  // 데이터가 적으면 전체
+    if (VIEW_HOURS > 0){
+      var cut = xs[xs.length-1] - VIEW_HOURS * 3600 * 1000;
+      for (var i = 0; i < ROWS.length; i++) if (xs[i] >= cut) IDX.push(i);
+    }
+    if (IDX.length < 2) IDX = ROWS.map(function(_, i){ return i; });  // 전체 또는 데이터 부족
     x0 = xs[IDX[0]];
     x1 = xs[IDX[IDX.length-1]];
   }
@@ -577,22 +593,42 @@
 
   /* ---------- 모드 전환 ---------- */
   var HINT = {
-    ratio: "최근 12시간 · 학생부교과 일반전형 기준",
-    count: "최근 12시간 · 정원내 + 정원외 전체 지원자",
-    vs:    "최근 12시간 · 굵은 선=작년 최종 (같은 일반전형 기준)"
+    ratio: "학생부교과 일반전형 기준",
+    count: "정원내 + 정원외 전체 지원자",
+    vs:    "굵은 선=작년 최종 (같은 일반전형 기준)"
   };
+  function rangeLabel(){
+    return VIEW_HOURS > 0 ? "최근 " + VIEW_HOURS + "시간" : "전체 기간";
+  }
+  function syncHint(){
+    document.getElementById("hint").textContent = rangeLabel() + " · " + HINT[mode];
+  }
   function setMode(m){
     mode = m;
     ["ratio","count","vs"].forEach(function(k){
       document.getElementById("m-"+k).setAttribute("aria-pressed", m === k);
     });
-    document.getElementById("hint").textContent = HINT[m];
     document.getElementById("lynote").hidden = (m !== "vs");
+    syncHint();
     draw();
   }
   ["ratio","count","vs"].forEach(function(k){
     document.getElementById("m-"+k).onclick = function(){ setMode(k); };
   });
+
+  function setRange(h){
+    VIEW_HOURS = h;
+    try { localStorage.setItem("ratioRange", h); } catch(e){}
+    [12,24,0].forEach(function(k){
+      document.getElementById("r-"+k).setAttribute("aria-pressed", h === k);
+    });
+    syncHint();
+    draw();
+  }
+  [12,24,0].forEach(function(k){
+    document.getElementById("r-"+k).onclick = function(){ setRange(k); };
+  });
+  setRange(VIEW_HOURS);
 
   // 작년 비교선 출처/한계 안내
   (function(){
