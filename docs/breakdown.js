@@ -1,34 +1,34 @@
 // 자동 생성 - fetch_ratio.py 실행 때마다 갱신. 현재 시점 스냅샷만 담는다.
 const BREAKDOWN = {
-  at: "9/10 22:00",
+  at: "9/10 23:00",
   univ: {
-    capIn: 1379, appIn: 4211, capOut: 80, appOut: 365,
+    capIn: 1379, appIn: 4397, capOut: 80, appOut: 374,
     byType: [
-      { name: "일반", cap: 803, app: 2218, outside: false },
-      { name: "인문계고교", cap: 265, app: 817, outside: false },
-      { name: "사회배려", cap: 26, app: 89, outside: false },
-      { name: "지역인재", cap: 98, app: 341, outside: false },
-      { name: "지역인재(기회)", cap: 4, app: 20, outside: false },
-      { name: "특성화고교", cap: 57, app: 70, outside: false },
-      { name: "면접우수", cap: 93, app: 425, outside: false },
-      { name: "SMU의료", cap: 33, app: 231, outside: false },
-      { name: "농어촌", cap: 35, app: 161, outside: true },
-      { name: "특성화고(외)", cap: 10, app: 55, outside: true },
-      { name: "기초생활", cap: 35, app: 149, outside: true }
+      { name: "일반", cap: 803, app: 2319, outside: false },
+      { name: "인문계고교", cap: 265, app: 855, outside: false },
+      { name: "사회배려", cap: 26, app: 91, outside: false },
+      { name: "지역인재", cap: 98, app: 351, outside: false },
+      { name: "지역인재(기회)", cap: 4, app: 21, outside: false },
+      { name: "특성화고교", cap: 57, app: 73, outside: false },
+      { name: "면접우수", cap: 93, app: 445, outside: false },
+      { name: "SMU의료", cap: 33, app: 242, outside: false },
+      { name: "농어촌", cap: 35, app: 164, outside: true },
+      { name: "특성화고(외)", cap: 10, app: 57, outside: true },
+      { name: "기초생활", cap: 35, app: 153, outside: true }
     ]
   },
   depts: {
     "AI컴퓨터학부": [
-      { name: "일반", cap: 42, capRaw: "42", app: 54, outside: false },
+      { name: "일반", cap: 42, capRaw: "42", app: 55, outside: false },
       { name: "인문계고교", cap: 10, capRaw: "10", app: 14, outside: false },
       { name: "지역인재", cap: 3, capRaw: "3", app: 4, outside: false },
-      { name: "특성화고교", cap: 5, capRaw: "5", app: 1, outside: false },
+      { name: "특성화고교", cap: 5, capRaw: "5", app: 2, outside: false },
       { name: "농어촌", cap: 6, capRaw: "6명 이내", app: 2, outside: true },
       { name: "특성화고(외)", cap: 6, capRaw: "6명 이내", app: 1, outside: true },
       { name: "기초생활", cap: 6, capRaw: "6명 이내", app: 3, outside: true }
     ],
     "스마트IT학부": [
-      { name: "일반", cap: 24, capRaw: "24", app: 8, outside: false },
+      { name: "일반", cap: 24, capRaw: "24", app: 9, outside: false },
       { name: "사회배려", cap: 3, capRaw: "3", app: 7, outside: false },
       { name: "지역인재", cap: 3, capRaw: "3", app: 4, outside: false },
       { name: "농어촌", cap: 4, capRaw: "4명 이내", app: 0, outside: true },
@@ -36,11 +36,11 @@ const BREAKDOWN = {
       { name: "기초생활", cap: 4, capRaw: "4명 이내", app: 2, outside: true }
     ],
     "전기전자공학과": [
-      { name: "일반", cap: 25, capRaw: "25", app: 86, outside: false },
+      { name: "일반", cap: 25, capRaw: "25", app: 93, outside: false },
       { name: "인문계고교", cap: 5, capRaw: "5", app: 44, outside: false },
-      { name: "특성화고교", cap: 5, capRaw: "5", app: 10, outside: false },
+      { name: "특성화고교", cap: 5, capRaw: "5", app: 11, outside: false },
       { name: "농어촌", cap: 4, capRaw: "4명 이내", app: 2, outside: true },
-      { name: "특성화고(외)", cap: 4, capRaw: "4명 이내", app: 4, outside: true },
+      { name: "특성화고(외)", cap: 4, capRaw: "4명 이내", app: 5, outside: true },
       { name: "기초생활", cap: 4, capRaw: "4명 이내", app: 4, outside: true }
     ],
     "건축학과": [
@@ -50,14 +50,14 @@ const BREAKDOWN = {
       { name: "기초생활", cap: 3, capRaw: "3명 이내", app: 1, outside: true }
     ],
     "재난안전학과": [
-      { name: "일반", cap: 20, capRaw: "20", app: 40, outside: false },
+      { name: "일반", cap: 20, capRaw: "20", app: 44, outside: false },
       { name: "특성화고교", cap: 5, capRaw: "5", app: 1, outside: false },
       { name: "농어촌", cap: 2, capRaw: "2명 이내", app: 0, outside: true },
       { name: "특성화고(외)", cap: 2, capRaw: "2명 이내", app: 0, outside: true },
       { name: "기초생활", cap: 2, capRaw: "2명 이내", app: 1, outside: true }
     ],
     "보건안전공학과": [
-      { name: "일반", cap: 20, capRaw: "20", app: 31, outside: false },
+      { name: "일반", cap: 20, capRaw: "20", app: 34, outside: false },
       { name: "지역인재", cap: 5, capRaw: "5", app: 11, outside: false },
       { name: "특성화고교", cap: 2, capRaw: "2", app: 3, outside: false },
       { name: "농어촌", cap: 2, capRaw: "2명 이내", app: 1, outside: true },
