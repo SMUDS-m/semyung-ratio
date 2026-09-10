@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>세명대 2027 수시 지원 현황 추이</title>
+<title>세명대 2027 수시 지원자 현황</title>
 <style>
   :root{
     color-scheme: light;
@@ -44,6 +44,10 @@
   .wrap{max-width:1240px;margin:0 auto}
   header{margin-bottom:1.25rem}
   h1{margin:0 0 .35rem;font-size:1.6rem;letter-spacing:-.01em;line-height:1.25}
+  h1 #asof{font-size:.72em;font-weight:600;color:var(--text-secondary);margin-left:.15em;
+           font-variant-numeric:tabular-nums;white-space:nowrap}
+  .sub-note{color:var(--text-muted)}
+  .sub-note::before{content:" · "}
   .sub{color:var(--text-secondary);font-size:.92rem;margin:0}
   .sub a{color:inherit}
   .card{background:var(--surface-1);border:1px solid var(--border);border-radius:.85rem;padding:1rem}
@@ -168,12 +172,13 @@
 <div class="wrap">
   <header>
     <div class="titlerow">
-      <h1>세명대 2027학년도 수시 지원 현황 추이</h1>
+      <h1>세명대 2027학년도 수시 지원자 현황<span id="asof"></span></h1>
       <div class="univ" id="univ" hidden></div>
     </div>
     <p class="sub">
-      매시간 자동 수집 · 마지막 갱신 <strong id="updated">—</strong> ·
+      매시간 자동 수집 ·
       출처 <a href="https://ratio.uwayapply.com/Sl5Kclc6Yk1gJkpmJSY6Jko3ZlRm" target="_blank" rel="noopener">유웨이 경쟁률 페이지</a>
+      <span class="sub-note">괄호 안은 페이지가 표시하는 기준시각입니다</span>
     </p>
   </header>
 
@@ -197,7 +202,7 @@
   <div class="card">
     <div class="chartbox" id="chartbox">
       <svg id="chart" viewBox="0 0 900 420" preserveAspectRatio="xMidYMid meet" role="img"
-           aria-label="학과별 지원 현황 시계열 그래프"></svg>
+           aria-label="학과별 지원자 현황 그래프"></svg>
       <div class="tip" id="tip"></div>
     </div>
     <div class="legend" id="legend"></div>
@@ -251,6 +256,11 @@
   }
   function fmt(v){ return mode === "count" ? String(Math.round(v)) : v.toFixed(2); }
   function fmtLong(v){ return mode === "count" ? Math.round(v) + "명" : v.toFixed(2) + ":1"; }
+  function labelFull(s){
+    var d = new Date(s + ":00");
+    return (d.getMonth()+1) + "/" + d.getDate() + " "
+      + String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+  }
   function label(s){
     var d = new Date(s + ":00");
     return (d.getMonth()+1) + "/" + d.getDate() + " " + String(d.getHours()).padStart(2,"0") + "시";
@@ -259,7 +269,7 @@
   /* ---------- 현재값 타일 ---------- */
   function tiles(){
     var last = ROWS[ROWS.length-1];
-    document.getElementById("updated").textContent = label(last[0]);
+    document.getElementById("asof").textContent = "(" + labelFull(last[0]) + ")";
     document.getElementById("tiles").innerHTML = D.map(function(d,i){
       var a = last[1][i], ex = last[2][i];
       return '<div class="tile">'
