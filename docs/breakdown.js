@@ -1,11 +1,11 @@
 // 자동 생성 - fetch_ratio.py 실행 때마다 갱신. 현재 시점 스냅샷만 담는다.
 const BREAKDOWN = {
-  at: "9/11 4:00",
+  at: "9/11 5:00",
   univ: {
-    capIn: 1379, appIn: 4721, capOut: 80, appOut: 396,
+    capIn: 1379, appIn: 4724, capOut: 80, appOut: 396,
     byType: [
-      { name: "일반", cap: 803, app: 2490, outside: false },
-      { name: "인문계고교", cap: 265, app: 922, outside: false },
+      { name: "일반", cap: 803, app: 2491, outside: false },
+      { name: "인문계고교", cap: 265, app: 924, outside: false },
       { name: "사회배려", cap: 26, app: 101, outside: false },
       { name: "지역인재", cap: 98, app: 377, outside: false },
       { name: "지역인재(기회)", cap: 4, app: 22, outside: false },
