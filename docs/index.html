@@ -121,12 +121,14 @@
     padding:0 .25rem;font-size:.68rem;color:var(--text-muted);vertical-align:.06em
   }
   .bt{margin-top:.5rem;border-top:1px solid var(--border);padding-top:.4rem}
-  .bt-h{color:var(--text-muted);font-size:.68rem;margin-bottom:.15rem}
+  .bt-h{color:var(--text-muted);font-size:.68rem;margin-bottom:.15rem;white-space:nowrap}
+  .bt-h2{margin-top:.3rem;padding-top:.3rem;border-top:1px dashed var(--border)}
+  .bt-note{opacity:.75}
   .bt-r{display:flex;gap:.35rem;font-size:.72rem;line-height:1.55;white-space:nowrap}
   .bt-n{flex:1;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis}
   .bt-v{color:var(--text-muted);font-variant-numeric:tabular-nums}
-  .bt-c{width:2.1rem;text-align:right;font-variant-numeric:tabular-nums;color:var(--text-primary)}
-  .bt-out .bt-n,.bt-out .bt-v{opacity:.75}
+  .bt-c{width:2.2rem;text-align:right;font-variant-numeric:tabular-nums;color:var(--text-primary)}
+  .bt-out .bt-n,.bt-out .bt-v,.bt-out .bt-c{opacity:.8}
   .lynote{
     margin:.9rem 0 0;padding:.6rem .75rem;border-left:3px solid var(--rule);
     background:var(--surface-0);border-radius:.3rem;
@@ -178,7 +180,10 @@
   </details>
 
   <footer>
-    경쟁률 = 지원인원 ÷ 정원내 모집인원. 정원외 전형(농어촌·특성화고교·기초생활수급자) 지원자는 타일에 <strong>+N</strong>으로 따로 표기했고 경쟁률 계산에서는 제외했습니다.<br>
+    학과 대표 경쟁률(큰 숫자)은 <strong>정원내</strong> 지원인원 ÷ 정원내 모집인원입니다.
+    타일 아래 전형별 표에서 정원외 전형은 모집인원이 <strong>'N명 이내'</strong>로만 공고돼,
+    그 상한 N을 분모로 삼아 <strong>≤N</strong>으로 표기했습니다 — 실제 선발인원은 그보다 적을 수 있어
+    표시된 경쟁률은 <strong>하한값</strong>입니다. 대표 경쟁률에는 정원외를 넣지 않았습니다.<br>
     비공식 자동 수집 자료로, 정확한 수치는 반드시 위 공식 페이지를 확인하세요.
   </footer>
 </div>
@@ -248,16 +253,22 @@
     var rows = BREAKDOWN.depts[deptName];
     var inside = rows.filter(function(r){ return !r.outside; });
     var outside = rows.filter(function(r){ return r.outside; });
-    var h = '<div class="bt"><div class="bt-h">전형별</div>';
-    h += inside.map(function(r){
-      return '<div class="bt-r"><span class="bt-n">'+r.name+'</span>'
-        + '<span class="bt-v">'+r.app+'/'+r.cap+'</span>'
+    function line(r, within){
+      // 정원외는 모집인원이 'N명 이내' 라 N 을 분모로 쓴다 (≤ 로 표시)
+      var cap = r.cap ? (within ? "≤" : "") + r.cap : "–";
+      return '<div class="bt-r'+(within ? ' bt-out' : '')+'">'
+        + '<span class="bt-n">'+r.name+'</span>'
+        + '<span class="bt-v">'+r.app+'/'+cap+'</span>'
         + '<span class="bt-c">'+(r.cap ? (r.app/r.cap).toFixed(2) : '–')+'</span></div>';
-    }).join("");
+    }
+    var h = '<div class="bt">';
+    if (inside.length){
+      h += '<div class="bt-h">정원내</div>'
+        + inside.map(function(r){ return line(r, false); }).join("");
+    }
     if (outside.length){
-      var oa = outside.reduce(function(t,r){ return t + r.app; }, 0);
-      h += '<div class="bt-r bt-out"><span class="bt-n">정원외 '+outside.length+'개</span>'
-        + '<span class="bt-v">'+oa+'명</span><span class="bt-c">–</span></div>';
+      h += '<div class="bt-h bt-h2">정원외 <span class="bt-note">≤ 상한 기준</span></div>'
+        + outside.map(function(r){ return line(r, true); }).join("");
     }
     return h + '</div>';
   }

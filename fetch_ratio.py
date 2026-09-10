@@ -147,9 +147,15 @@ def build_breakdown(html, ts, result):
     for name, _ in TARGETS:
         rows = []
         for jeon, mo, mo_raw, ji in result[name]:
+            outside = mo is None
+            cap = mo
+            if outside:
+                # '6명 이내' 처럼 상한만 적힌 경우 그 숫자를 분모로 삼는다.
+                m = re.search(r"(\d[\d,]*)\s*명", mo_raw or "")
+                cap = num(m.group(1)) if m else None
             rows.append('      { name: %s, cap: %s, capRaw: %s, app: %d, outside: %s }'
-                        % (js(short_jeon(jeon)), js(mo), js(mo_raw), ji,
-                           "true" if mo is None else "false"))
+                        % (js(short_jeon(jeon)), js(cap), js(mo_raw), ji,
+                           "true" if outside else "false"))
         parts.append('    %s: [\n%s\n    ]' % (js(name), ",\n".join(rows)))
     out += [",\n".join(parts), "  }", "};", ""]
 
