@@ -234,9 +234,7 @@
   }
   // 해당 모드에서 값이 있는 행 인덱스
   function liveRows(di){
-    var out = [];
-    for (var r = 0; r < ROWS.length; r++) if (val(r, di) !== null) out.push(r);
-    return out;
+    return IDX.filter(function(r){ return val(r, di) !== null; });
   }
   function fmt(v){ return mode === "count" ? String(Math.round(v)) : v.toFixed(2); }
   function fmtLong(v){ return mode === "count" ? Math.round(v) + "명" : v.toFixed(2) + ":1"; }
@@ -362,9 +360,20 @@
     PW = W - ML - MR;
     PH = H - MT - MB;
   }
+  var VIEW_HOURS = 12;                 // 그래프에 보여줄 최근 구간
   var xs = ROWS.map(function(r){ return tms(r[0]); });
-  var x0 = xs[0], x1 = xs[xs.length-1];
+  var IDX = [];                        // 화면에 그릴 행 인덱스 (draw 에서 갱신)
+  var x0, x1;
   var X = function(t){ return ML + (x1 === x0 ? PW : (t - x0) / (x1 - x0) * PW); };
+
+  function setWindow(){
+    var cut = xs[xs.length-1] - VIEW_HOURS * 3600 * 1000;
+    IDX = [];
+    for (var i = 0; i < ROWS.length; i++) if (xs[i] >= cut) IDX.push(i);
+    if (IDX.length < 2) IDX = ROWS.map(function(_, i){ return i; });  // 데이터가 적으면 전체
+    x0 = xs[IDX[0]];
+    x1 = xs[IDX[IDX.length-1]];
+  }
 
   function niceMax(v){
     if (v <= 0) return 1;
@@ -374,10 +383,11 @@
 
   function draw(){
     geom();
+    setWindow();
     document.getElementById("chart").setAttribute("viewBox", "0 0 " + W + " " + H);
     var vis = D.map(function(_,i){ return i; }).filter(function(i){ return on[i]; });
     var peak = 0;
-    ROWS.forEach(function(_,r){ vis.forEach(function(i){
+    IDX.forEach(function(r){ vis.forEach(function(i){
       var v = val(r,i); if (v !== null) peak = Math.max(peak, v);
     }); });
     if (mode === "vs") vis.forEach(function(i){
@@ -405,21 +415,24 @@
     }
 
     // x축 눈금: 자정/정오
+    var spanH = (x1 - x0) / 3600000;
+    var step = spanH <= 7 ? 1 : spanH <= 15 ? (dense ? 2 : 3) : spanH <= 40 ? 6 : 12;
     var seen = {};
-    ROWS.forEach(function(r){
-      var d = new Date(r[0] + ":00"), h = d.getHours();
-      if (h !== 0 && !(dense && h === 12)) return;
-      var k = r[0].slice(0,10) + h;
+    IDX.forEach(function(ri){
+      var d = new Date(ROWS[ri][0] + ":00"), h = d.getHours();
+      if (h % step !== 0) return;
+      var k = ROWS[ri][0].slice(0,10) + h;
       if (seen[k]) return;
       seen[k] = 1;
-      var x = X(tms(r[0]));
+      var x = X(xs[ri]);
+      if (x > ML + PW - 34) return;              // 마지막 눈금과 겹치면 생략
       out.push('<line class="gridline" x1="'+x.toFixed(1)+'" y1="'+MT+'" x2="'+x.toFixed(1)+'" y2="'+(MT+PH)+'"/>');
       out.push('<text class="axis-text" x="'+x.toFixed(1)+'" y="'+(MT+PH+20)+'" text-anchor="middle">'
-        + (h === 0 ? (d.getMonth()+1)+"/"+d.getDate() : "12시") + '</text>');
+        + (h === 0 ? (d.getMonth()+1)+"/"+d.getDate() : h+"시") + '</text>');
     });
     // 마지막 시점 눈금
     out.push('<text class="axis-text" x="'+(ML+PW)+'" y="'+(MT+PH+20)+'" text-anchor="end">'
-      + label(ROWS[ROWS.length-1][0]) + '</text>');
+      + label(ROWS[IDX[IDX.length-1]][0]) + '</text>');
 
     // 선
     // 작년 최종 경쟁률 - 가로 점선 (vs 모드 전용, 왼쪽에 라벨)
@@ -503,8 +516,8 @@
     function move(ev){
       var pt = svg.getBoundingClientRect();
       var sx = (ev.clientX - pt.left) / pt.width * W;
-      var best = 0, bd = Infinity;
-      xs.forEach(function(t,i){ var d = Math.abs(X(t) - sx); if (d < bd){ bd = d; best = i; } });
+      var best = IDX[0], bd = Infinity;
+      IDX.forEach(function(i){ var d = Math.abs(X(xs[i]) - sx); if (d < bd){ bd = d; best = i; } });
 
       var px = X(xs[best]);
       g.style.display = "";
@@ -564,9 +577,9 @@
 
   /* ---------- 모드 전환 ---------- */
   var HINT = {
-    ratio: "학생부교과 일반전형 기준 · 9/9 17시부터 기록",
-    count: "정원내 + 정원외 전체 지원자",
-    vs:    "실선=올해 현재까지 · 굵은 선=작년 최종 (같은 일반전형 기준)"
+    ratio: "최근 12시간 · 학생부교과 일반전형 기준",
+    count: "최근 12시간 · 정원내 + 정원외 전체 지원자",
+    vs:    "최근 12시간 · 굵은 선=작년 최종 (같은 일반전형 기준)"
   };
   function setMode(m){
     mode = m;
