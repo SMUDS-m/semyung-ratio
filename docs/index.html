@@ -54,9 +54,10 @@
 
   /* 현재값 타일 */
   /* 좁은 화면은 자동 줄바꿈, 넓은 화면에서는 6개 학과를 반드시 한 줄에 */
-  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.6rem,1fr));gap:.5rem;margin-bottom:1rem}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.6rem,1fr));gap:.5rem;margin-bottom:1rem;align-items:stretch}
   @media (min-width:1040px){ .tiles{grid-template-columns:repeat(6,1fr)} }
-  .tile{background:var(--surface-1);border:1px solid var(--border);border-radius:.7rem;padding:.65rem .7rem;min-width:0}
+  .tile{background:var(--surface-1);border:1px solid var(--border);border-radius:.7rem;padding:.65rem .7rem;min-width:0;
+        display:flex;flex-direction:column}
   .tile .nm{display:flex;align-items:center;gap:.35rem;color:var(--text-secondary);font-size:.85rem;margin-bottom:.15rem;white-space:nowrap}
   .dot{width:.62rem;height:.62rem;border-radius:50%;flex:none}
   .sw{width:1.5rem;height:.7rem;flex:none;overflow:visible}
@@ -155,6 +156,7 @@
   .bt-v{color:var(--text-muted);font-variant-numeric:tabular-nums}
   .bt-c{width:2.2rem;text-align:right;font-variant-numeric:tabular-nums;color:var(--text-primary)}
   .bt-out .bt-n,.bt-out .bt-v,.bt-out .bt-c{opacity:.8}
+  .bt-fill{visibility:hidden}
   /* 일반전형 = 차트 경쟁률의 기준이라 붉게 강조 */
   .bt-main .bt-n{color:var(--accent);font-weight:600}
   .bt-main .bt-c{color:var(--accent);font-weight:700}
@@ -282,6 +284,21 @@
     }).join("");
   }
 
+  // 타일 줄맞춤: 학과마다 전형 개수가 달라 최댓값에 맞춰 빈 줄을 채운다.
+  var MAX_IN = 0, MAX_OUT = 0;
+  if (typeof BREAKDOWN !== "undefined"){
+    D.forEach(function(d){
+      var rows = BREAKDOWN.depts[d.name] || [];
+      MAX_IN  = Math.max(MAX_IN,  rows.filter(function(r){ return !r.outside; }).length);
+      MAX_OUT = Math.max(MAX_OUT, rows.filter(function(r){ return  r.outside; }).length);
+    });
+  }
+  function fillers(n){
+    var h = "";
+    for (var k = 0; k < n; k++) h += '<div class="bt-r bt-fill">&nbsp;</div>';
+    return h;
+  }
+
   // 학과 타일 안의 전형별 내역 (현재 시점 스냅샷)
   function byType(deptName){
     if (typeof BREAKDOWN === "undefined" || !BREAKDOWN.depts[deptName]) return "";
@@ -297,15 +314,13 @@
         + '<span class="bt-v">'+r.app+'/'+cap+'</span>'
         + '<span class="bt-c">'+(r.cap ? (r.app/r.cap).toFixed(2) : '–')+'</span></div>';
     }
-    var h = '<div class="bt">';
-    if (inside.length){
-      h += '<div class="bt-h">정원내</div>'
-        + inside.map(function(r){ return line(r, false); }).join("");
-    }
-    if (outside.length){
-      h += '<div class="bt-h bt-h2">정원외 <span class="bt-note">≤ 상한 기준</span></div>'
-        + outside.map(function(r){ return line(r, true); }).join("");
-    }
+    var h = '<div class="bt">'
+      + '<div class="bt-h">정원내</div>'
+      + inside.map(function(r){ return line(r, false); }).join("")
+      + fillers(MAX_IN - inside.length)
+      + '<div class="bt-h bt-h2">정원외 <span class="bt-note">≤ 상한 기준</span></div>'
+      + outside.map(function(r){ return line(r, true); }).join("")
+      + fillers(MAX_OUT - outside.length);
     return h + '</div>';
   }
 
@@ -347,7 +362,8 @@
   function prog(i, last){
     if (typeof LASTYEAR === "undefined") return "";
     var ly = LASTYEAR.ratio[D[i].name], g = last[3] ? last[3][i] : null;
-    if (!ly || g === null || g === undefined || !D[i].capGen) return "";
+    if (!ly || g === null || g === undefined || !D[i].capGen)
+      return '<div class="prog">&nbsp;</div>';            // 줄맞춤용 빈 줄
     return '<div class="prog">작년 최종 대비 '
       + Math.round((g / D[i].capGen) / ly * 100) + '% <span class="tag tag-main">일반전형</span></div>';
   }
