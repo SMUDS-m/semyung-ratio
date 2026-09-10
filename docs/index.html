@@ -11,6 +11,7 @@
     --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#84837d;
     --grid:#e8e7e2; --rule:#b9b8b2;
     --s1:#2a78d6; --s2:#eda100; --s3:#e87ba4; --s4:#008300; --s5:#4a3aa7; --s6:#e34948;
+    --accent:#c62828;   /* 일반전형 강조 - 라이트 5.48:1 */
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
@@ -19,6 +20,8 @@
       --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#8d8c84;
       --grid:#2b2b28; --rule:#565550;
       --s1:#3987e5; --s2:#c98500; --s3:#d55181; --s4:#008300; --s5:#9085e9; --s6:#e66767;
+    --accent:#ff8a8a;
+      --accent:#ff8a8a;   /* 다크 7.68:1 */
     }
   }
   :root[data-theme="dark"]{
@@ -27,6 +30,7 @@
     --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#8d8c84;
     --grid:#2b2b28; --rule:#565550;
     --s1:#3987e5; --s2:#c98500; --s3:#d55181; --s4:#008300; --s5:#9085e9; --s6:#e66767;
+    --accent:#ff8a8a;
   }
   *{box-sizing:border-box}
   /* 화면 폭에 따라 기준 글자크기가 16px -> 21px 로 부드럽게 커진다.
@@ -63,7 +67,9 @@
     padding:.5rem 1rem;font:inherit;font-size:.95rem;cursor:pointer
   }
   .seg button[aria-pressed="true"]{background:var(--text-primary);color:var(--surface-1);font-weight:600}
-  .seg button small{font-size:.78em;opacity:.62;margin-left:.15rem}
+  .seg button small{font-size:.78em;opacity:.75;margin-left:.15rem}
+  .seg button#m-ratio small{color:var(--accent);opacity:1}
+  .seg button#m-ratio[aria-pressed="true"] small{color:#ff9c9c}
   .spacer{flex:1}
   .hint{color:var(--text-muted);font-size:.86rem}
 
@@ -112,12 +118,18 @@
   thead th{color:var(--text-secondary);font-weight:600;border-bottom:1px solid var(--rule)}
   .titlerow{display:flex;flex-wrap:wrap;align-items:flex-start;gap:1rem;justify-content:space-between}
   .univ{
-    display:flex;align-items:baseline;gap:.5rem;flex-wrap:wrap;
-    background:var(--surface-1);border:1px solid var(--border);border-radius:.6rem;padding:.45rem .8rem
+    background:var(--surface-1);border:1px solid var(--border);border-radius:.6rem;padding:.5rem .8rem
   }
-  .univ-lb{color:var(--text-secondary);font-size:.85rem}
-  .univ-v{font-size:1.35rem;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-  .univ-m{color:var(--text-muted);font-size:.76rem;font-variant-numeric:tabular-nums;line-height:1.4}
+  .urow{display:grid;grid-template-columns:auto auto 1fr;align-items:baseline;gap:.15rem .55rem}
+  .urow + .urow{margin-top:.15rem}
+  .univ-lb{color:var(--text-secondary);font-size:.85rem;white-space:nowrap}
+  .univ-v{font-size:1.3rem;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums;
+          text-align:right;white-space:nowrap}
+  .univ-m{color:var(--text-muted);font-size:.76rem;font-variant-numeric:tabular-nums;
+          line-height:1.4;white-space:nowrap}
+  .unote{color:var(--text-muted);font-size:.7rem;margin-top:.3rem;
+         border-top:1px solid var(--border);padding-top:.25rem}
+  .tag-main{color:var(--accent);border-color:var(--accent)}
   .tag{
     display:inline-block;border:1px solid var(--border);border-radius:.25rem;
     padding:0 .25rem;font-size:.68rem;color:var(--text-muted);vertical-align:.06em
@@ -131,6 +143,9 @@
   .bt-v{color:var(--text-muted);font-variant-numeric:tabular-nums}
   .bt-c{width:2.2rem;text-align:right;font-variant-numeric:tabular-nums;color:var(--text-primary)}
   .bt-out .bt-n,.bt-out .bt-v,.bt-out .bt-c{opacity:.8}
+  /* 일반전형 = 차트 경쟁률의 기준이라 붉게 강조 */
+  .bt-main .bt-n{color:var(--accent);font-weight:600}
+  .bt-main .bt-c{color:var(--accent);font-weight:700}
   .lynote{
     margin:.9rem 0 0;padding:.6rem .75rem;border-left:3px solid var(--rule);
     background:var(--surface-0);border-radius:.3rem;
@@ -253,9 +268,10 @@
     var inside = rows.filter(function(r){ return !r.outside; });
     var outside = rows.filter(function(r){ return r.outside; });
     function line(r, within){
+      var main = (!within && r.name === "일반");   // 차트가 쓰는 기준 = 일반전형
       // 정원외는 모집인원이 'N명 이내' 라 N 을 분모로 쓴다 (≤ 로 표시)
       var cap = r.cap ? (within ? "≤" : "") + r.cap : "–";
-      return '<div class="bt-r'+(within ? ' bt-out' : '')+'">'
+      return '<div class="bt-r'+(within ? ' bt-out' : '')+(main ? ' bt-main' : '')+'">'
         + '<span class="bt-n">'+r.name+'</span>'
         + '<span class="bt-v">'+r.app+'/'+cap+'</span>'
         + '<span class="bt-c">'+(r.cap ? (r.app/r.cap).toFixed(2) : '–')+'</span></div>';
@@ -277,12 +293,33 @@
     if (typeof BREAKDOWN === "undefined" || !BREAKDOWN.univ) return;
     var u = BREAKDOWN.univ, el = document.getElementById("univ");
     var n = function(v){ return v.toLocaleString("ko-KR"); };
+    // AI융합대학 = 추적 중인 6개 학과 (최신 시점 합계)
+    var last = ROWS[ROWS.length-1], c = { capIn:0, appIn:0, capOut:0, appOut:0 };
+    D.forEach(function(d,i){
+      c.capIn += d.cap;
+      c.appIn += last[1][i];
+      c.appOut += last[2][i];
+      // 정원외 모집인원은 'N명 이내' 상한을 합산한다
+      (BREAKDOWN.depts[d.name] || []).forEach(function(r){
+        if (r.outside && r.cap) c.capOut += r.cap;
+      });
+    });
+
+    // capIn/appIn = 정원내, capAll/appAll = 정원외까지 포함한 전체
+    function row(label, capIn, appIn, capAll, appAll){
+      return '<div class="urow"><span class="univ-lb">'+label+'</span>'
+        + '<span class="univ-v">'+(appIn/capIn).toFixed(2)+':1</span>'
+        + '<span class="univ-m">' + n(appIn) + '명 / ' + n(capIn) + '명'
+        + ' · 정원외 포함 ' + (appAll/capAll).toFixed(2) + ':1 ('
+        + n(appAll) + '명 / ' + n(capAll) + '명)</span></div>';
+    }
+
     el.hidden = false;
-    el.innerHTML = '<span class="univ-lb">대학 전체</span>'
-      + '<span class="univ-v">'+(u.appIn/u.capIn).toFixed(2)+':1</span>'
-      + '<span class="univ-m">' + n(u.appIn) + '명 지원 / ' + n(u.capIn) + '명 모집'
-      + '<br>정원외 포함 ' + ((u.appIn+u.appOut)/(u.capIn+u.capOut)).toFixed(2) + ':1 ('
-      + n(u.appIn+u.appOut) + '명 / ' + n(u.capIn+u.capOut) + '명)</span>';
+    el.innerHTML =
+      row("대학 전체", u.capIn, u.appIn, u.capIn + u.capOut, u.appIn + u.appOut)
+      + row("AI융합대학", c.capIn, c.appIn, c.capIn + c.capOut, c.appIn + c.appOut)
+      + '<div class="unote">AI융합대학 = 아래 6개 학과 합계 · 정원외 모집인원은 '
+      + "'N명 이내' 상한 합계</div>";
   })();
 
   // 작년 최종 대비 진행률 (같은 일반전형 기준끼리 비교)
@@ -291,7 +328,7 @@
     var ly = LASTYEAR.ratio[D[i].name], g = last[3] ? last[3][i] : null;
     if (!ly || g === null || g === undefined || !D[i].capGen) return "";
     return '<div class="prog">작년 최종 대비 '
-      + Math.round((g / D[i].capGen) / ly * 100) + '% <span class="tag">일반전형</span></div>';
+      + Math.round((g / D[i].capGen) / ly * 100) + '% <span class="tag tag-main">일반전형</span></div>';
   }
 
   /* ---------- 범례 ---------- */
