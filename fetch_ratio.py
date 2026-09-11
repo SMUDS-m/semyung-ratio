@@ -61,10 +61,22 @@ def clean(cell):
     return TAG.sub("", cell).replace("&nbsp;", " ").strip()
 
 
+def is_closed(html):
+    """접수가 끝나 '최종 경쟁률' 이 게시된 페이지인가."""
+    return "최종 경쟁률" in TAG.sub(" ", html)
+
+
 def parse(html):
     text = TAG.sub(" ", html)
     m = re.search(r"(\d{4})\D{1,2}\s*(\d{1,2})\D{1,2}\s*(\d{1,2})\D{1,3}\s*(\d{1,2})\s*시\s*(\d{1,2})", text)
-    ts = "%d/%d %d:%02d" % tuple(int(m.group(i)) for i in (2, 3, 4, 5)) if m else "시각미확인"
+    if m:
+        ts = "%d/%d %d:%02d" % tuple(int(m.group(i)) for i in (2, 3, 4, 5))
+    elif is_closed(html):
+        # 최종 발표 페이지에는 기준시각 줄이 없다. 마감 시각을 기준시각으로 삼는다.
+        d = DEADLINE
+        ts = "%d/%d %s" % (int(d[5:7]), int(d[8:10]), d[11:])
+    else:
+        ts = "시각미확인"
 
     heads = list(SECTION.finditer(html))
     result = {name: [] for name, _ in TARGETS}
@@ -192,15 +204,17 @@ def general_only(result):
     return out
 
 
-def is_final(ts):
-    """페이지 기준시각이 마감 시각에 도달했는가."""
+def is_final(ts, html=None):
+    """마감 확정 수치인가. 페이지가 '최종 경쟁률' 을 선언했거나 기준시각이 마감에 도달한 경우."""
+    if html is not None and is_closed(html):
+        return True
     stamp = to_iso(ts)
     return bool(stamp) and stamp >= DEADLINE
 
 
-def build_message(ts, result):
+def build_message(ts, result, html=None):
     """카톡 200자 제한에 맞춘 KAKAO_DEPT 한 학과의 전형별 현황."""
-    final = is_final(ts)
+    final = is_final(ts, html)
     rows = result.get(KAKAO_DEPT, [])
     mo_in = sum(r[1] for r in rows if r[1] is not None)
     ji_in = sum(r[3] for r in rows if r[1] is not None)
@@ -317,7 +331,7 @@ def main():
 
     html = fetch()
     ts, result = parse(html)
-    print(build_message(ts, result))
+    print(build_message(ts, result, html))
     build_breakdown(html, ts, result)
 
     if "--log" in sys.argv:
@@ -326,7 +340,7 @@ def main():
         sys.stderr.write("[log] %s · CSV %s · docs/data.js %d개 시점\n"
                          % (ts, "추가함" if added else "이미 있어 건너뜀", build_site()))
         sys.stderr.write("FINAL_READY=%s (마감 %s)\n"
-                         % ("yes" if is_final(ts) else "no", DEADLINE))
+                         % ("yes" if is_final(ts, html) else "no", DEADLINE))
 
     if "--detail" in sys.argv:
         print("\n=== 전형별 상세 ===")
