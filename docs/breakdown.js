@@ -1,6 +1,6 @@
 // 자동 생성 - fetch_ratio.py 실행 때마다 갱신. 현재 시점 스냅샷만 담는다.
 const BREAKDOWN = {
-  at: "시각미확인",
+  at: "9/11 22:00",
   univ: {
     capIn: 1379, appIn: 6270, capOut: 80, appOut: 498,
     byType: [
