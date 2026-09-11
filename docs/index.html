@@ -132,6 +132,9 @@
           text-align:right;white-space:nowrap}
   .univ-m{color:var(--text-muted);font-size:.76rem;font-variant-numeric:tabular-nums;
           line-height:1.4;white-space:nowrap}
+  .ly-cmp{display:inline-block;margin-left:.5rem;padding:0 .3rem;border-radius:.25rem;
+          background:var(--surface-0);border:1px solid var(--border);color:var(--text-secondary)}
+  .ly-cmp.up{color:var(--accent);border-color:var(--accent)}
   .unote{color:var(--text-muted);font-size:.7rem;margin-top:.3rem;
          border-top:1px solid var(--border);padding-top:.25rem}
   /* 좁은 화면: 숫자 아래로 설명을 접어 넣는다 (nowrap 때문에 잘리던 문제) */
@@ -341,21 +344,32 @@
       });
     });
 
-    // capIn/appIn = 정원내, capAll/appAll = 정원외까지 포함한 전체
-    function row(label, capIn, appIn, capAll, appAll){
+    // capIn/appIn = 정원내, capAll/appAll = 정원외까지 포함한 전체, ly = 작년 정원내 경쟁률
+    function row(label, capIn, appIn, capAll, appAll, ly){
+      var now = appIn / capIn;
+      var cmp = "";
+      if (ly){
+        var diff = now - ly;
+        cmp = '<span class="ly-cmp' + (diff >= 0 ? ' up' : '') + '">작년 ' + ly.toFixed(2)
+            + ' · ' + (diff >= 0 ? '▲' : '▼') + Math.abs(diff).toFixed(2) + '</span>';
+      }
       return '<div class="urow"><span class="univ-lb">'+label+'</span>'
-        + '<span class="univ-v">'+(appIn/capIn).toFixed(2)+':1</span>'
+        + '<span class="univ-v">'+now.toFixed(2)+':1</span>'
         + '<span class="univ-m">' + n(appIn) + '명 / ' + n(capIn) + '명'
         + ' · 정원외 포함 ' + (appAll/capAll).toFixed(2) + ':1 ('
-        + n(appAll) + '명 / ' + n(capAll) + '명)</span></div>';
+        + n(appAll) + '명 / ' + n(capAll) + '명)' + cmp + '</span></div>';
     }
+    var LO = (typeof LASTYEAR !== "undefined" && LASTYEAR.official) || null;
 
     el.hidden = false;
     el.innerHTML =
-      row("대학 전체", u.capIn, u.appIn, u.capIn + u.capOut, u.appIn + u.appOut)
-      + row("AI융합대학", c.capIn, c.appIn, c.capIn + c.capOut, c.appIn + c.appOut)
+      row("대학 전체", u.capIn, u.appIn, u.capIn + u.capOut, u.appIn + u.appOut,
+          LO && LO.univ.appIn / LO.univ.capIn)
+      + row("AI융합대학", c.capIn, c.appIn, c.capIn + c.capOut, c.appIn + c.appOut,
+            LO && LO.college.appIn / LO.college.capIn)
       + '<div class="unote">AI융합대학 = 아래 6개 학과 합계 · 정원외 모집인원은 '
-      + "'N명 이내' 상한 합계</div>";
+      + "'N명 이내' 상한 합계"
+      + (LO ? ' · 작년 수치는 입학처 배포 자료(정원내 기준)' : '') + "</div>";
   })();
 
   // 작년 최종 대비 진행률 (같은 일반전형 기준끼리 비교)
@@ -670,6 +684,9 @@
       + "</a>입니다. 대학 공식 발표로 교차 검증하지 못했습니다."
       + "<br>올해 실선도 같은 기준(학생부교과 일반전형)이라 1:1로 견줄 수 있습니다. "
       + "다만 일반전형 단독 기록은 2026-09-09 17시에 시작해 그 이전 구간은 비어 있습니다."
+      + (LASTYEAR.caution ? "<br><strong>⚠ " + LASTYEAR.caution + "</strong>"
+          + (LASTYEAR.official && LASTYEAR.official.newTypes
+              ? " 신설: " + LASTYEAR.official.newTypes.join("·") + "전형." : "") : "")
       + (renamed ? "<br>학과 개편으로 이름이 바뀐 곳: " + renamed + ". 모집인원 구성이 달라졌을 수 있습니다." : "");
   })();
 
