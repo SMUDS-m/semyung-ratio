@@ -87,6 +87,10 @@
   .ref-text{fill:var(--text-muted);font-size:14px}
   .series{fill:none;stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
   .endlabel{fill:var(--text-primary);font-size:17px;font-weight:650;font-variant-numeric:tabular-nums}
+  .bench{stroke:var(--rule);stroke-width:1.5;stroke-dasharray:9 6}
+  .bench.strong{stroke:var(--text-secondary);stroke-width:2;stroke-dasharray:none}
+  .bench-text{fill:var(--text-muted);font-size:13px;font-variant-numeric:tabular-nums}
+  .bench-text.strong{fill:var(--text-primary);font-weight:650}
   .crosshair{stroke:var(--rule);stroke-width:1.2}
   .halo{stroke:var(--surface-1);stroke-width:2}
 
@@ -144,6 +148,12 @@
     .univ-v{text-align:left}
     .univ-m{grid-column:1/-1;white-space:normal;line-height:1.5}
   }
+  .tile .prog{color:var(--text-muted);font-size:.74rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .lynote{
+    margin:.9rem 0 0;padding:.6rem .75rem;border-left:3px solid var(--rule);
+    background:var(--surface-0);border-radius:.3rem;
+    color:var(--text-secondary);font-size:.84rem;line-height:1.6
+  }
   .tag{
     display:inline-block;border:1px solid var(--border);border-radius:.25rem;
     padding:0 .25rem;font-size:.68rem;color:var(--text-muted);vertical-align:.06em
@@ -184,6 +194,7 @@
     <div class="seg" role="group" aria-label="표시 지표">
       <button id="m-ratio" aria-pressed="true">경쟁률 <small>일반전형</small></button>
       <button id="m-count" aria-pressed="false">지원자 수 <small>전체</small></button>
+      <button id="m-vs" aria-pressed="false">작년 대비 <small>정원내</small></button>
     </div>
     <div class="seg" role="group" aria-label="표시 구간">
       <button id="r-12" aria-pressed="true">12시간</button>
@@ -201,6 +212,7 @@
       <div class="tip" id="tip"></div>
     </div>
     <div class="legend" id="legend"></div>
+    <p class="lynote" id="lynote" hidden></p>
   </div>
 
   <details>
@@ -237,11 +249,24 @@
   // 지원자 수 = 정원내 + 정원외 전체
   function val(rowIdx, di){
     if (mode === "count") return ROWS[rowIdx][1][di] + ROWS[rowIdx][2][di];
+    // '작년 대비' 는 정원내 전 전형 합산 - 작년 공식 수치와 같은 기준이고 전 구간 기록이 있다
+    if (mode === "vs") return ROWS[rowIdx][1][di] / D[di].cap;
     var g = ROWS[rowIdx][3] ? ROWS[rowIdx][3][di] : null;
     if (g === null || g === undefined || !D[di].capGen) return null;
     return g / D[di].capGen;
   }
   // 해당 모드에서 값이 있는 행 인덱스
+  // 작년 공식 기준선 (정원내 기준). 학과별 작년 수치는 입학처 자료에 없어
+  // 단과대학·대학 단위 값을 기준선으로 쓴다.
+  var BENCH = [];
+  if (typeof LASTYEAR !== "undefined" && LASTYEAR.official){
+    var O = LASTYEAR.official;
+    BENCH = [
+      { name: "작년 AI융합대학", v: O.college.appIn / O.college.capIn, strong: true },
+      { name: "작년 대학 전체",  v: O.univ.appIn   / O.univ.capIn,    strong: false }
+    ];
+  }
+
   function liveRows(di){
     return IDX.filter(function(r){ return val(r, di) !== null; });
   }
@@ -267,6 +292,7 @@
         + '<div class="nm">' + '<svg class="sw" viewBox="0 0 24 10" aria-hidden="true">'+'<line x1="1" y1="5" x2="23" y2="5" stroke="var('+SER[i]+')" stroke-width="3" stroke-linecap="round" stroke-dasharray="'+DASH[i]+'"/></svg>' + d.short+'</div>'
         + '<div class="val">'+(a/d.cap).toFixed(2)+':1</div>'
         + '<div class="meta">'+a+'명 / '+d.cap+'명 <span class="tag">전체</span></div>'
+        + prog(i, last)
         + byType(d.name)
         + '</div>';
     }).join("");
@@ -285,6 +311,14 @@
     var h = "";
     for (var k = 0; k < n; k++) h += '<div class="bt-r bt-fill">&nbsp;</div>';
     return h;
+  }
+
+  // 작년 AI융합대학 최종(공식, 정원내) 대비 - 학과별 작년 수치가 없어 단과대학 값을 기준으로 쓴다
+  function prog(i, last){
+    if (!BENCH.length) return '<div class="prog">&nbsp;</div>';
+    var base = BENCH[0].v;
+    return '<div class="prog">작년 단과대 대비 '
+      + Math.round((last[1][i] / D[i].cap) / base * 100) + '%</div>';
   }
 
   // 학과 타일 안의 전형별 내역 (현재 시점 스냅샷)
@@ -421,6 +455,7 @@
     IDX.forEach(function(r){ vis.forEach(function(i){
       var v = val(r,i); if (v !== null) peak = Math.max(peak, v);
     }); });
+    if (mode === "vs") BENCH.forEach(function(b){ peak = Math.max(peak, b.v); });
     var ymax = niceMax(peak * 1.08) || 1;
     var Y = function(v){ return MT + PH - v / ymax * PH; };
 
@@ -463,6 +498,17 @@
       + label(ROWS[IDX[IDX.length-1]][0]) + '</text>');
 
     // 선
+    if (mode === "vs"){
+      BENCH.slice().sort(function(a,b){ return Y(a.v) - Y(b.v); }).forEach(function(b, k){
+        var y = Y(b.v);
+        if (y < MT || y > MT + PH) return;
+        out.push('<line class="bench'+(b.strong ? ' strong' : '')+'" x1="'+ML+'" y1="'+y.toFixed(1)
+          + '" x2="'+(ML+PW)+'" y2="'+y.toFixed(1)+'"/>');
+        out.push('<text class="bench-text'+(b.strong ? ' strong' : '')+'" x="'+(ML+6+k*130)
+          + '" y="'+(y-7).toFixed(1)+'">'+b.name+' '+b.v.toFixed(2)+'</text>');
+      });
+    }
+
     vis.forEach(function(i){
       var live = liveRows(i);
       if (!live.length) return;
@@ -583,6 +629,7 @@
   var HINT = {
     ratio: "학생부교과 일반전형 기준",
     count: "정원내 + 정원외 전체 지원자",
+    vs:    "정원내 전 전형 기준 · 가로선=작년 공식 최종",
   };
   function rangeLabel(){
     return VIEW_HOURS > 0 ? "최근 " + VIEW_HOURS + "시간" : "전체 기간";
@@ -592,13 +639,14 @@
   }
   function setMode(m){
     mode = m;
-    ["ratio","count"].forEach(function(k){
+    ["ratio","count","vs"].forEach(function(k){
       document.getElementById("m-"+k).setAttribute("aria-pressed", m === k);
     });
+    document.getElementById("lynote").hidden = (m !== "vs");
     syncHint();
     draw();
   }
-  ["ratio","count"].forEach(function(k){
+  ["ratio","count","vs"].forEach(function(k){
     document.getElementById("m-"+k).onclick = function(){ setMode(k); };
   });
 
@@ -615,6 +663,22 @@
     document.getElementById("r-"+k).onclick = function(){ setRange(k); };
   });
   setRange(VIEW_HOURS);
+
+  // '작년 대비' 탭 주석 - 기준선의 출처와 한계
+  (function(){
+    if (typeof LASTYEAR === "undefined" || !LASTYEAR.official) return;
+    var O = LASTYEAR.official;
+    document.getElementById("lynote").innerHTML =
+      "가로선은 <strong>작년(2026) 확정 경쟁률</strong>입니다 — 출처 " + O.source + "."
+      + "<br>입학처 자료에 <strong>학과별 작년 수치가 없어</strong>(전년도 행은 대학 전체 전형별, "
+      + "아래 표는 단과대학 단위) 학과마다 따로 선을 그을 수 없습니다. "
+      + "대신 <strong>AI융합대학 " + (O.college.appIn/O.college.capIn).toFixed(2)
+      + "</strong>(작년 정원내 최종)을 공통 기준선으로 두어, 각 학과가 작년 단과대학 수준을 "
+      + "넘었는지 보도록 했습니다."
+      + "<br>올해 선은 <strong>정원내 전 전형 합산</strong>이라 기준선과 산출 방식이 같습니다. "
+      + "(경쟁률 탭의 일반전형 기준과는 다릅니다 — 올해 " + O.newTypes.join("·")
+      + "전형이 신설돼 작년 일반전형과 범위가 어긋나기 때문입니다.)";
+  })();
 
   tiles(); legend(); table(); draw();
   window.addEventListener("resize", function(){ draw(); });
