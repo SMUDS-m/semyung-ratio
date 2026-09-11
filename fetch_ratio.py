@@ -17,6 +17,8 @@ from datetime import datetime
 URL = "https://ratio.uwayapply.com/Sl5Kclc6Yk1gJkpmJSY6Jko3ZlRm"
 
 KAKAO_DEPT = "재난안전학과"   # 카톡으로 보낼 학과 (전형별 상세)
+# 원서접수 마감. 페이지 기준시각이 이 시각에 도달하면 그 수치를 최종으로 본다.
+DEADLINE = "2026-09-11T22:00"
 
 # (페이지상 학과명, 카톡 표기용 짧은 이름)
 TARGETS = [
@@ -190,13 +192,20 @@ def general_only(result):
     return out
 
 
+def is_final(ts):
+    """페이지 기준시각이 마감 시각에 도달했는가."""
+    stamp = to_iso(ts)
+    return bool(stamp) and stamp >= DEADLINE
+
+
 def build_message(ts, result):
     """카톡 200자 제한에 맞춘 KAKAO_DEPT 한 학과의 전형별 현황."""
+    final = is_final(ts)
     rows = result.get(KAKAO_DEPT, [])
     mo_in = sum(r[1] for r in rows if r[1] is not None)
     ji_in = sum(r[3] for r in rows if r[1] is not None)
 
-    lines = ["[세명대수시] %s" % ts,
+    lines = ["[세명대수시%s] %s" % (" 최종" if final else "", ts),
              "%s %d/%d %.2f" % (KAKAO_DEPT, ji_in, mo_in, ji_in / mo_in if mo_in else 0)]
     for jeon, mo, mo_raw, ji in rows:
         if mo is None:                       # 정원외: 'N명 이내' 의 N 을 분모로
@@ -207,6 +216,11 @@ def build_message(ts, result):
             cap, cap_txt = mo, str(mo)
         ratio = "%.2f" % (ji / cap) if cap else "-"
         lines.append("·%s %d/%s %s" % (short_jeon(jeon), ji, cap_txt, ratio))
+    if final:
+        sm = summarize(result)
+        cmo = sum(sm[n][0] for n, _ in TARGETS)
+        cji = sum(sm[n][1] for n, _ in TARGETS)
+        lines.append("AI융합대 %d/%d %.2f (작년2.32)" % (cji, cmo, cji / cmo if cmo else 0))
     lines.append("※≤는 정원외 상한")
     return "\n".join(lines)[:200]
 
@@ -311,6 +325,8 @@ def main():
         added = log_history(ts, result)
         sys.stderr.write("[log] %s · CSV %s · docs/data.js %d개 시점\n"
                          % (ts, "추가함" if added else "이미 있어 건너뜀", build_site()))
+        sys.stderr.write("FINAL_READY=%s (마감 %s)\n"
+                         % ("yes" if is_final(ts) else "no", DEADLINE))
 
     if "--detail" in sys.argv:
         print("\n=== 전형별 상세 ===")
