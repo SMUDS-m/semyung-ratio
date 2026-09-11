@@ -148,7 +148,8 @@
     .univ-v{text-align:left}
     .univ-m{grid-column:1/-1;white-space:normal;line-height:1.5}
   }
-  .tile .prog{color:var(--text-muted);font-size:.74rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .tile .prog{color:var(--text-muted);font-size:.69rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .tile .prog b{color:var(--text-primary);font-weight:650}
   .lynote{
     margin:.9rem 0 0;padding:.6rem .75rem;border-left:3px solid var(--rule);
     background:var(--surface-0);border-radius:.3rem;
@@ -194,7 +195,7 @@
     <div class="seg" role="group" aria-label="표시 지표">
       <button id="m-ratio" aria-pressed="true">경쟁률 <small>일반전형</small></button>
       <button id="m-count" aria-pressed="false">지원자 수 <small>전체</small></button>
-      <button id="m-vs" aria-pressed="false">작년 대비 <small>정원내</small></button>
+      <button id="m-vs" aria-pressed="false">작년 대비 <small>인원</small></button>
     </div>
     <div class="seg" role="group" aria-label="표시 구간">
       <button id="r-12" aria-pressed="true">12시간</button>
@@ -249,8 +250,8 @@
   // 지원자 수 = 정원내 + 정원외 전체
   function val(rowIdx, di){
     if (mode === "count") return ROWS[rowIdx][1][di] + ROWS[rowIdx][2][di];
-    // '작년 대비' 는 정원내 전 전형 합산 - 작년 공식 수치와 같은 기준이고 전 구간 기록이 있다
-    if (mode === "vs") return ROWS[rowIdx][1][di] / D[di].cap;
+    // '작년 대비' 는 정원내 지원자 수 - 작년 자료에 모집인원이 없어 인원으로 견준다
+    if (mode === "vs") return ROWS[rowIdx][1][di];
     var g = ROWS[rowIdx][3] ? ROWS[rowIdx][3][di] : null;
     if (g === null || g === undefined || !D[di].capGen) return null;
     return g / D[di].capGen;
@@ -271,15 +272,15 @@
   function deptBench(di){
     var bd = (typeof LASTYEAR !== "undefined" && LASTYEAR.official && LASTYEAR.official.byDept) || null;
     var e = bd && bd[D[di].name];
-    return (e && e.cap > 0) ? e.app / e.cap : null;
+    return (e && e.app > 0) ? e.app : null;   // 작년 최종 정원내 지원자 수
   }
   var HAS_DEPT = D.some(function(_, i){ return deptBench(i) !== null; });
 
   function liveRows(di){
     return IDX.filter(function(r){ return val(r, di) !== null; });
   }
-  function fmt(v){ return mode === "count" ? String(Math.round(v)) : v.toFixed(2); }
-  function fmtLong(v){ return mode === "count" ? Math.round(v) + "명" : v.toFixed(2) + ":1"; }
+  function fmt(v){ return (mode === "count" || mode === "vs") ? String(Math.round(v)) : v.toFixed(2); }
+  function fmtLong(v){ return (mode === "count" || mode === "vs") ? Math.round(v) + "명" : v.toFixed(2) + ":1"; }
   function labelFull(s){
     var d = new Date(s + ":00");
     return (d.getMonth()+1) + "/" + d.getDate() + " "
@@ -323,10 +324,11 @@
 
   // 작년 AI융합대학 최종(공식, 정원내) 대비 - 학과별 작년 수치가 없어 단과대학 값을 기준으로 쓴다
   function prog(i, last){
-    var base = HAS_DEPT ? deptBench(i) : (BENCH.length ? BENCH[0].v : null);
+    if (!HAS_DEPT) return '<div class="prog">&nbsp;</div>';
+    var base = deptBench(i);
     if (!base) return '<div class="prog">&nbsp;</div>';
-    return '<div class="prog">작년 ' + (HAS_DEPT ? '학과' : '단과대') + ' 대비 '
-      + Math.round((last[1][i] / D[i].cap) / base * 100) + '%</div>';
+    return '<div class="prog">작년 대비 <b>' + Math.round(last[1][i] / base * 100)
+      + '%</b> (' + last[1][i] + '/' + base + ')</div>';
   }
 
   // 학과 타일 안의 전형별 내역 (현재 시점 스냅샷)
@@ -526,7 +528,7 @@
         out.push('<line x1="'+ML+'" y1="'+l.y.toFixed(1)+'" x2="'+(ML+PW)+'" y2="'+l.y.toFixed(1)
           + '" stroke="var('+SER[l.i]+')" stroke-width="4" opacity=".2"/>');
         out.push('<text class="bench-text" x="'+l.lx.toFixed(1)+'" y="'+(l.y-7).toFixed(1)+'">작년 '
-          + D[l.i].short + ' ' + l.v.toFixed(2) + '</text>');
+          + D[l.i].short + ' ' + l.v + '명</text>');
       });
     } else if (mode === "vs"){
       BENCH.slice().sort(function(a,b){ return Y(a.v) - Y(b.v); }).forEach(function(b, k){
@@ -659,7 +661,7 @@
   var HINT = {
     ratio: "학생부교과 일반전형 기준",
     count: "정원내 + 정원외 전체 지원자",
-    vs:    "정원내 전 전형 기준 · 가로선=작년 공식 최종",
+    vs:    "정원내 지원자 수 · 가로선=작년 최종 인원",
   };
   function rangeLabel(){
     return VIEW_HOURS > 0 ? "최근 " + VIEW_HOURS + "시간" : "전체 기간";
@@ -699,9 +701,11 @@
     if (typeof LASTYEAR === "undefined" || !LASTYEAR.official) return;
     var O = LASTYEAR.official;
     document.getElementById("lynote").innerHTML =
-      "가로선은 <strong>작년(2026) 확정 경쟁률</strong>입니다 — 출처 " + O.source + "."
+      "출처: 세명대 입학처 「2027학년도 수시모집 정원내 접수 현황」(2026.09.09 18:00 현재) 의 2026 열."
       + (HAS_DEPT
-          ? "<br><strong>학과별 작년 확정치</strong>를 각 학과 색으로 그었습니다."
+          ? "<br>가로선은 <strong>학과별 작년 최종 정원내 지원자 수</strong>이고, 선은 올해 같은 기준"
+            + "(정원내 지원자 수) 누적입니다. 작년 자료에 모집인원이 없어 경쟁률이 아니라 "
+            + "<strong>인원</strong>으로 견줍니다."
           : "<br>입학처 자료에 <strong>학과별 작년 수치가 없어</strong>(전년도 행은 대학 전체 전형별, "
             + "아래 표는 단과대학 단위) 학과마다 따로 선을 그을 수 없습니다. "
             + "대신 <strong>AI융합대학 " + (O.college.appIn/O.college.capIn).toFixed(2)
