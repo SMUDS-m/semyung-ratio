@@ -267,6 +267,14 @@
     ];
   }
 
+  // 학과별 작년 확정치가 채워져 있으면 그것을, 아니면 단과대학 기준선을 쓴다
+  function deptBench(di){
+    var bd = (typeof LASTYEAR !== "undefined" && LASTYEAR.official && LASTYEAR.official.byDept) || null;
+    var e = bd && bd[D[di].name];
+    return (e && e.cap > 0) ? e.app / e.cap : null;
+  }
+  var HAS_DEPT = D.some(function(_, i){ return deptBench(i) !== null; });
+
   function liveRows(di){
     return IDX.filter(function(r){ return val(r, di) !== null; });
   }
@@ -315,9 +323,9 @@
 
   // 작년 AI융합대학 최종(공식, 정원내) 대비 - 학과별 작년 수치가 없어 단과대학 값을 기준으로 쓴다
   function prog(i, last){
-    if (!BENCH.length) return '<div class="prog">&nbsp;</div>';
-    var base = BENCH[0].v;
-    return '<div class="prog">작년 단과대 대비 '
+    var base = HAS_DEPT ? deptBench(i) : (BENCH.length ? BENCH[0].v : null);
+    if (!base) return '<div class="prog">&nbsp;</div>';
+    return '<div class="prog">작년 ' + (HAS_DEPT ? '학과' : '단과대') + ' 대비 '
       + Math.round((last[1][i] / D[i].cap) / base * 100) + '%</div>';
   }
 
@@ -455,7 +463,12 @@
     IDX.forEach(function(r){ vis.forEach(function(i){
       var v = val(r,i); if (v !== null) peak = Math.max(peak, v);
     }); });
-    if (mode === "vs") BENCH.forEach(function(b){ peak = Math.max(peak, b.v); });
+    if (mode === "vs"){
+      if (HAS_DEPT) vis.forEach(function(i){
+        var v = deptBench(i); if (v) peak = Math.max(peak, v);
+      });
+      else BENCH.forEach(function(b){ peak = Math.max(peak, b.v); });
+    }
     var ymax = niceMax(peak * 1.08) || 1;
     var Y = function(v){ return MT + PH - v / ymax * PH; };
 
@@ -498,7 +511,24 @@
       + label(ROWS[IDX[IDX.length-1]][0]) + '</text>');
 
     // 선
-    if (mode === "vs"){
+    if (mode === "vs" && HAS_DEPT){
+      // 학과별 작년 확정치 - 각 계열 색으로 굵은 반투명 가로선 + 왼쪽 라벨
+      var lys = vis.map(function(i){
+        var v = deptBench(i);
+        return v ? { i: i, v: v, y: Y(v) } : null;
+      }).filter(Boolean).sort(function(a, b){ return a.y - b.y; });
+      var slot = 0;
+      lys.forEach(function(l, k){
+        slot = (k > 0 && l.y - lys[k-1].y < 18) ? slot + 1 : 0;
+        l.lx = ML + 6 + slot * 96;
+      });
+      lys.forEach(function(l){
+        out.push('<line x1="'+ML+'" y1="'+l.y.toFixed(1)+'" x2="'+(ML+PW)+'" y2="'+l.y.toFixed(1)
+          + '" stroke="var('+SER[l.i]+')" stroke-width="4" opacity=".2"/>');
+        out.push('<text class="bench-text" x="'+l.lx.toFixed(1)+'" y="'+(l.y-7).toFixed(1)+'">작년 '
+          + D[l.i].short + ' ' + l.v.toFixed(2) + '</text>');
+      });
+    } else if (mode === "vs"){
       BENCH.slice().sort(function(a,b){ return Y(a.v) - Y(b.v); }).forEach(function(b, k){
         var y = Y(b.v);
         if (y < MT || y > MT + PH) return;
@@ -670,11 +700,14 @@
     var O = LASTYEAR.official;
     document.getElementById("lynote").innerHTML =
       "가로선은 <strong>작년(2026) 확정 경쟁률</strong>입니다 — 출처 " + O.source + "."
-      + "<br>입학처 자료에 <strong>학과별 작년 수치가 없어</strong>(전년도 행은 대학 전체 전형별, "
-      + "아래 표는 단과대학 단위) 학과마다 따로 선을 그을 수 없습니다. "
-      + "대신 <strong>AI융합대학 " + (O.college.appIn/O.college.capIn).toFixed(2)
-      + "</strong>(작년 정원내 최종)을 공통 기준선으로 두어, 각 학과가 작년 단과대학 수준을 "
-      + "넘었는지 보도록 했습니다."
+      + (HAS_DEPT
+          ? "<br><strong>학과별 작년 확정치</strong>를 각 학과 색으로 그었습니다."
+          : "<br>입학처 자료에 <strong>학과별 작년 수치가 없어</strong>(전년도 행은 대학 전체 전형별, "
+            + "아래 표는 단과대학 단위) 학과마다 따로 선을 그을 수 없습니다. "
+            + "대신 <strong>AI융합대학 " + (O.college.appIn/O.college.capIn).toFixed(2)
+            + "</strong>(작년 정원내 최종)을 공통 기준선으로 두었습니다. "
+            + "학과별 확정치를 구하면 <code>docs/lastyear.js</code> 의 <code>byDept</code> 에 "
+            + "채우는 것만으로 학과별 선으로 바뀝니다.")
       + "<br>올해 선은 <strong>정원내 전 전형 합산</strong>이라 기준선과 산출 방식이 같습니다. "
       + "(경쟁률 탭의 일반전형 기준과는 다릅니다 — 올해 " + O.newTypes.join("·")
       + "전형이 신설돼 작년 일반전형과 범위가 어긋나기 때문입니다.)";
